@@ -30,15 +30,16 @@
     line-height:1.6;
   }
 
-  /* ---- 3D 描画用の全画面キャンバス（最前面・各ビューア矩形にだけ描画） ---- */
+  /* ---- 3D 描画用の全画面キャンバス（通常は静止画書き出しのみ＝非表示／拡大時のみ前面） ---- */
   #webgl{
     position:fixed; inset:0;
     width:100vw; height:100vh;
-    z-index:3;
-    pointer-events:none;   /* 操作は下の.viewerが受ける（透過クリック） */
+    z-index:-1;            /* 通常は背面（カードは静止スクショを表示） */
+    pointer-events:none;
     display:block;
   }
-  .site{ position:relative; }   /* z-indexは付けない（ルート文脈を維持） */
+  body.lb-open #webgl{ z-index:1960; }   /* ライトボックス時のみ最前面でステージ矩形に描画 */
+  .site{ position:relative; }
 
   /* ---------- ヘッダー ---------- */
   header.hero{
@@ -136,7 +137,7 @@
   .card__body{ display:grid; grid-template-columns:1fr 1fr; gap:0; }
   @media (max-width:760px){ .card__body{ grid-template-columns:1fr; } }
 
-  .panel{ position:relative; min-height:440px; display:flex; flex-direction:column; }
+  .panel{ position:relative; min-height:300px; display:flex; flex-direction:column; align-items:center; justify-content:center; }
   .panel + .panel{ border-left:1px solid var(--line); }
   @media (max-width:760px){ .panel + .panel{ border-left:0; border-top:1px solid var(--line); } }
   .panel__tag{
@@ -147,21 +148,26 @@
   }
   .panel--model .panel__tag{ background:rgba(28,27,25,.78); color:#fff; border-color:transparent; }
 
-  /* 原案スケッチ */
-  .panel--sketch{ background:#fbfaf7; align-items:center; justify-content:center; }
-  .panel--sketch img{ max-width:100%; max-height:440px; object-fit:contain; display:block; padding:18px; }
-
-  /* 3D ビューア（最前面キャンバスがこの矩形にだけ3Dを描く。下地はプレースホルダ背景） */
-  .viewer{ position:relative; flex:1; min-height:408px; touch-action:none; cursor:grab; }
-  .viewer:active{ cursor:grabbing; }
-  .panel--model.is-light .viewer{ background:#f3f1ec; }
-  .panel--model.is-dark  .viewer{ background:#232323; }
-  /* 操作ヒント（ビューア矩形の外＝キャンバスに覆われない） */
-  .viewer__bar{
-    flex:none; text-align:center; font-size:11px; color:var(--ink-soft);
-    padding:8px 10px; border-top:1px solid var(--line); background:#fff;
-    letter-spacing:.03em;
+  /* クリックで拡大できるパネル */
+  .panel.zoomable{ cursor:zoom-in; }
+  .panel.zoomable::after{
+    content:"🔍 クリックで拡大"; position:absolute; right:10px; bottom:10px; z-index:6;
+    font-size:11px; font-weight:600; color:var(--ink);
+    background:rgba(255,255,255,.92); border:1px solid var(--line); border-radius:999px;
+    padding:4px 11px; opacity:0; transform:translateY(4px); transition:.18s; pointer-events:none;
   }
+  .panel.zoomable:hover::after{ opacity:1; transform:translateY(0); }
+  .panel--model.is-dark.zoomable::after{ background:rgba(0,0,0,.5); color:#eee; border-color:rgba(255,255,255,.18); }
+
+  /* 原案スケッチ */
+  .panel--sketch{ background:#fbfaf7; }
+  .panel--sketch img{ max-width:100%; max-height:300px; object-fit:contain; display:block; padding:16px; }
+  .panel--sketch .no-sketch{ pointer-events:none; }
+
+  /* 3Dモデル静止スクショ */
+  .panel--model.is-light{ background:#f3f1ec; }
+  .panel--model.is-dark{ background:#232323; }
+  .panel--model .shot{ max-width:100%; max-height:300px; object-fit:contain; display:block; opacity:0; transition:opacity .35s; padding:6px; }
   .viewer__overlay{
     position:absolute; inset:0; z-index:7; display:flex; flex-direction:column;
     align-items:center; justify-content:center; gap:14px; color:var(--ink-soft);
@@ -173,6 +179,37 @@
   @keyframes spin{ to{ transform:rotate(360deg); } }
   .viewer__overlay .pct{ font-size:12px; font-weight:600; letter-spacing:.05em; }
   .viewer__overlay.err{ color:#c0392b; }
+
+  /* ---------- ライトボックス（拡大表示） ---------- */
+  .lb[hidden]{ display:none; }
+  .lb{ position:fixed; inset:0; z-index:1850; display:flex; }
+  .lb__backdrop{ position:absolute; inset:0; background:rgba(22,21,18,.80); -webkit-backdrop-filter:blur(5px); backdrop-filter:blur(5px); }
+  .lb__panel{
+    position:relative; z-index:1950; margin:auto; width:min(1120px,95vw); height:min(90vh,940px);
+    background:var(--card); border-radius:18px; box-shadow:0 36px 90px -24px rgba(0,0,0,.65);
+    display:flex; flex-direction:column; overflow:hidden;
+  }
+  .lb__head{ display:flex; align-items:center; gap:12px; padding:11px 14px; border-bottom:1px solid var(--line); flex-wrap:wrap; }
+  .lb__title{ font-weight:800; font-size:15px; letter-spacing:.02em; }
+  .lb__spacer{ flex:1; }
+  .lb__ctls{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .lb__ctls[hidden]{ display:none; }
+  .lb__close{ width:34px; height:34px; border-radius:50%; border:1px solid var(--line); background:#fff; cursor:pointer; font-size:14px; line-height:1; flex:none; }
+  .lb__close:hover{ background:#f1eee7; }
+  .lb__stage{ position:relative; flex:1; min-height:0; background:#f3f1ec; }
+  body.lb-dark .lb__stage{ background:#232323; }
+  .lb__viewer{ position:absolute; inset:0; touch-action:none; cursor:grab; }
+  .lb__viewer[hidden]{ display:none; }
+  .lb__viewer:active{ cursor:grabbing; }
+  .lb__img{ position:absolute; inset:0; width:100%; height:100%; object-fit:contain; background:#fff; }
+  .lb__img[hidden]{ display:none; }
+  .lb__hint{ text-align:center; font-size:12px; color:var(--ink-soft); padding:8px; border-top:1px solid var(--line); }
+  .lb__hint[hidden]{ display:none; }
+  .lb__loading{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; }
+  .lb__loading[hidden]{ display:none; }
+  .switch.sm .track{ width:38px; height:22px; }
+  .switch.sm .track::after{ width:16px; height:16px; }
+  .switch.sm input:checked + .track::after{ transform:translateX(16px); }
 
   /* ---------- カラーパレット ---------- */
   .palette{ padding:14px 20px 16px; border-top:1px solid var(--line); background:#fcfbf9; }
@@ -194,6 +231,8 @@
   footer{ text-align:center; color:var(--ink-soft); font-size:12px; padding:30px 20px 50px; letter-spacing:.05em; }
   footer .brand{ font-weight:700; color:var(--ink); }
 
+  .tb-hint{ font-size:12px; color:var(--ink-soft); letter-spacing:.02em; }
+  @media (max-width:680px){ .tb-hint{ display:none; } }
   .btn-reload{
     appearance:none; border:1px solid var(--line); background:#fff; cursor:pointer;
     font:inherit; font-size:13px; font-weight:600; color:var(--ink);
@@ -264,6 +303,32 @@
 
 <canvas id="webgl"></canvas>
 
+<div id="lightbox" class="lb" hidden>
+  <div class="lb__backdrop"></div>
+  <div class="lb__panel">
+    <div class="lb__head">
+      <span class="lb__title" id="lbTitle"></span>
+      <span class="lb__spacer"></span>
+      <div class="lb__ctls" id="lbCtls">
+        <div class="seg" id="lb-proj">
+          <button data-mode="persp" class="on">遠近法</button>
+          <button data-mode="ortho">パースなし</button>
+        </div>
+        <label class="switch sm"><input type="checkbox" id="lb-rotate" /><span class="track"></span><span>回転</span></label>
+        <button class="btn-cap" id="lbCap" type="button">📷 各アングル撮影</button>
+        <button class="btn-reset" id="lbReset" type="button">↺ リセット</button>
+      </div>
+      <button class="lb__close" id="lbClose" type="button" aria-label="閉じる">✕</button>
+    </div>
+    <div class="lb__stage" id="lbStage">
+      <div class="lb__viewer" id="lbViewer"></div>
+      <img class="lb__img" id="lbImg" alt="" hidden />
+      <div class="lb__loading" id="lbLoading" hidden><div class="spinner"></div></div>
+    </div>
+    <div class="lb__hint" id="lbHint">ドラッグで回転 ・ ホイール / ピンチで拡大縮小</div>
+  </div>
+</div>
+
 <div class="site">
   <header class="hero">
     <p class="kicker">3D Design Review</p>
@@ -274,24 +339,13 @@
 
   <div class="toolbar">
     <div class="ctl">
-      <span class="lbl">画角</span>
-      <div class="seg" id="seg-proj">
-        <button data-mode="persp" class="on">遠近法</button>
-        <button data-mode="ortho">パースなし</button>
-      </div>
-    </div>
-    <div class="ctl">
       <span class="lbl">背景</span>
       <div class="seg" id="seg-bg">
         <button data-bg="light" class="on">ライト</button>
         <button data-bg="dark">ダーク</button>
       </div>
     </div>
-    <label class="switch">
-      <input type="checkbox" id="chk-rotate" />
-      <span class="track"></span>
-      <span>自動回転</span>
-    </label>
+    <span class="tb-hint">画像をクリックで拡大（3Dはぐりぐり回せます）</span>
     <button class="btn-reload" id="btn-reload" type="button" title="ファイルを差し替えた後に押すと最新を読み込みます">↻ 最新に更新</button>
   </div>
 
@@ -398,18 +452,19 @@ loader.setDRACOLoader(draco);
 
 const DEG = Math.PI / 180;
 
-/* ====== ビューア ====== */
+/* ====== ビューア（DOM非依存・拡大時のみコントロール生成） ====== */
 class Viewer{
-  constructor(model, el, panel){
+  constructor(model){
     this.id = model.id;
     this.glbVer = model.glbVer || '';
-    this.element = el;
-    this.panel = panel;
     this.loaded = false; this.loading = false; this.failed = false;
     this.dimEl = null; this.dims = null;
+    this.shotPanel = null; this.shotImg = null; this.overlayEl = null; this.pctEl = null;
+    this.controls = null; this.lbEl = null;
     this.fov = 38;
     this.mode = 'persp';
     this.orthoHalfH = 1;
+    this.target = new THREE.Vector3();
 
     this.scene = new THREE.Scene();
     this.scene.environment = envMap;
@@ -438,21 +493,11 @@ class Viewer{
     this.persp = new THREE.PerspectiveCamera(this.fov, 1, 0.01, 2000);
     this.ortho = new THREE.OrthographicCamera(-1, 1, 1, -1, -2000, 2000);
     this.camera = this.persp;
-
-    this.controls = this.makeControls(this.camera);
-
     this.home = { pos:new THREE.Vector3(2,1.2,3), target:new THREE.Vector3() };
-
-    // overlay
-    this.overlay = document.createElement('div');
-    this.overlay.className = 'viewer__overlay';
-    this.overlay.innerHTML = '<div class="spinner"></div><div class="pct">準備中…</div>';
-    el.appendChild(this.overlay);
-    this.pctEl = this.overlay.querySelector('.pct');
   }
 
-  makeControls(cam){
-    const c = new OrbitControls(cam, this.element);
+  makeControls(el){
+    const c = new OrbitControls(this.camera, el);
     c.enableDamping = true;
     c.dampingFactor = 0.08;
     c.enablePan = false;
@@ -460,13 +505,15 @@ class Viewer{
     c.maxDistance = 5000;
     c.autoRotateSpeed = 1.6;
     c.autoRotate = state.rotate;
+    c.target.copy(this.target);
+    c.update();
     return c;
   }
 
   load(){
     if(this.loaded || this.loading || this.failed) return;
     this.loading = true;
-    this.overlay.classList.remove('hidden','err');
+    if(this.overlayEl) this.overlayEl.classList.remove('hidden','err');
     const url = `models/${this.id}.glb` + (this.glbVer ? `?v=${this.glbVer}` : '');
     loader.load(
       url,
@@ -487,22 +534,27 @@ class Viewer{
         }
 
         this.loaded = true; this.loading = false;
-        this.overlay.classList.add('hidden');
-        setTimeout(()=>{ if(this.loaded) this.overlay.style.display='none'; }, 450);
+        renderStill(this);
+        if(this.overlayEl){
+          this.overlayEl.classList.add('hidden');
+          setTimeout(()=>{ if(this.overlayEl) this.overlayEl.style.display='none'; }, 420);
+        }
+        // 読み込み中に拡大を開いていたら、完了後にインタラクティブ起動
+        if(active === this && lbOpen){ lbLoading.hidden = true; this.activate(lbViewer); }
       },
       (xhr)=>{
-        if(xhr.total){
-          const p = Math.round(xhr.loaded / xhr.total * 100);
-          this.pctEl.textContent = p + '%';
-        } else {
-          this.pctEl.textContent = Math.round(xhr.loaded/1048576) + ' MB';
+        if(this.pctEl){
+          this.pctEl.textContent = xhr.total ? Math.round(xhr.loaded/xhr.total*100) + '%'
+                                             : Math.round(xhr.loaded/1048576) + ' MB';
         }
       },
       (err)=>{
         console.error('GLB load error', this.id, err);
         this.loading = false; this.failed = true;
-        this.overlay.classList.add('err');
-        this.overlay.innerHTML = '<div class="pct">読み込みに失敗しました<br>models/'+this.id+'.glb</div>';
+        if(this.overlayEl){
+          this.overlayEl.classList.add('err');
+          this.overlayEl.innerHTML = '<div class="pct">読み込みに失敗しました<br>models/'+this.id+'.glb</div>';
+        }
       }
     );
   }
@@ -523,16 +575,14 @@ class Viewer{
     this.orthoHalfH = dist * Math.tan((this.fov*DEG)/2);
 
     this.home = { pos:pos.clone(), target:target.clone(), orthoHalfH:this.orthoHalfH };
-
-    this.controls.target.copy(target);
-    this.controls.update();
-    this.applyMode(state.mode, true);
+    this.target.copy(target);
+    this.camera = this.persp; this.mode = 'persp';
   }
 
   applyMode(mode, force){
     if(!force && mode === this.mode) return;
     const from = this.camera;
-    const target = this.controls.target.clone();
+    const target = this.target;
     const dir = new THREE.Vector3().subVectors(from.position, target);
     const dist = dir.length() || 1;
     dir.normalize();
@@ -544,19 +594,29 @@ class Viewer{
       this.ortho.zoom = 1;
       this.camera = this.ortho;
     } else {
-      // ortho→persp: 見かけの大きさを合わせて距離を再計算
       const effHalfH = this.orthoHalfH / (this.ortho.zoom || 1);
       const d2 = effHalfH / Math.tan((this.fov*DEG)/2);
       this.persp.position.copy(target).add(dir.multiplyScalar(d2));
       this.persp.up.copy(from.up);
       this.camera = this.persp;
     }
-    this.controls.dispose();
-    this.controls = this.makeControls(this.camera);
-    this.controls.target.copy(target);
     this.camera.lookAt(target);
-    this.controls.update();
+    if(this.controls && this.lbEl){
+      this.controls.dispose();
+      this.controls = this.makeControls(this.lbEl);
+    }
     this.mode = mode;
+  }
+
+  activate(el){
+    this.lbEl = el;
+    if(this.controls){ this.controls.dispose(); this.controls = null; }
+    this.applyMode(state.mode, true);
+    this.controls = this.makeControls(el);
+  }
+  deactivate(){
+    if(this.controls){ this.controls.dispose(); this.controls = null; }
+    this.lbEl = null;
   }
 
   reset(){
@@ -565,13 +625,37 @@ class Viewer{
     this.ortho.position.copy(this.home.pos);
     this.orthoHalfH = this.home.orthoHalfH || this.orthoHalfH;
     this.ortho.zoom = 1;
-    this.controls.target.copy(this.home.target);
+    this.target.copy(this.home.target);
     this.camera.lookAt(this.home.target);
-    this.controls.update();
+    if(this.controls){ this.controls.target.copy(this.home.target); this.controls.update(); }
   }
 
-  setAutoRotate(v){ this.controls.autoRotate = v; }
+  setAutoRotate(v){ if(this.controls) this.controls.autoRotate = v; }
 }
+
+/* ====== 3D 静止スクショ生成（カードのサムネ用） ====== */
+function renderStill(v){
+  if(!v.loaded || !v.shotImg) return;
+  const SIZE = 720;
+  const prev = new THREE.Vector2(); renderer.getSize(prev);
+  const prevPR = renderer.getPixelRatio();
+  renderer.setScissorTest(false);
+  renderer.setPixelRatio(1);
+  renderer.setSize(SIZE, SIZE, false);
+  const cam = new THREE.PerspectiveCamera(v.fov, 1, 0.01, v.radius*400);
+  cam.position.copy(v.home.pos); cam.up.set(0,1,0); cam.lookAt(v.home.target);
+  cam.updateProjectionMatrix();
+  renderer.setViewport(0,0,SIZE,SIZE);
+  renderer.setClearColor(BG[state.bg], 1);
+  renderer.clear();
+  renderer.render(v.scene, cam);
+  v.shotImg.src = renderer.domElement.toDataURL('image/png');
+  v.shotImg.style.opacity = '1';
+  renderer.setPixelRatio(prevPR);
+  renderer.setSize(prev.x, prev.y, false);
+}
+function rerenderStills(){ viewers.forEach(v => { if(v.loaded) renderStill(v); }); }
+function clearGL(){ renderer.setScissorTest(false); renderer.setClearColor(0x000000, 0); renderer.clear(); }
 
 /* ====== カード生成 ====== */
 const grid = document.getElementById('grid');
@@ -581,41 +665,44 @@ function buildCard(m){
   const card = document.createElement('section');
   card.className = 'card';
   const sketchSrc = `sketches/${m.id}.png` + (m.pngVer ? `?v=${m.pngVer}` : '');
-  const sketchHtml = m.pngVer
-    ? `<img loading="lazy" src="${sketchSrc}" alt="${m.label} sketch" />`
+  const sketchInner = m.pngVer
+    ? `<img class="sketch-img" loading="lazy" src="${sketchSrc}" alt="${m.label} sketch" />`
     : `<div class="no-sketch">原案スケッチなし<br><span>sketches/${m.id}.png</span></div>`;
   card.innerHTML = `
     <div class="card__head">
       <span class="card__no ${m.secret?'secret':''}">${m.label}</span>
       <span class="card__file">models/${m.id}.glb${m.pngVer?` · sketches/${m.id}.png`:''}</span>
       <span class="card__dim" title="GLBの書き出し寸法（mm想定）。W=幅 / H=高さ / D=奥行">寸法測定中…</span>
-      <span class="spacer"></span>
-      <button class="btn-cap" type="button">📷 各アングル撮影</button>
-      <button class="btn-reset" type="button">↺ 視点リセット</button>
     </div>
     <div class="card__body">
-      <div class="panel panel--sketch">
-        <span class="panel__tag">原案スケッチ / Sketch</span>
-        ${sketchHtml}
-      </div>
-      <div class="panel panel--model is-light">
+      <div class="panel panel--model is-${state.bg} zoomable">
         <span class="panel__tag">3Dモデル / Model</span>
-        <div class="viewer"></div>
-        <div class="viewer__bar">ドラッグで回転 ・ ホイール / ピンチで拡大縮小</div>
+        <img class="shot" alt="${m.label} 3D" />
+        <div class="viewer__overlay"><div class="spinner"></div><div class="pct">準備中…</div></div>
+      </div>
+      <div class="panel panel--sketch zoomable">
+        <span class="panel__tag">原案スケッチ / Sketch</span>
+        ${sketchInner}
       </div>
     </div>
     <div class="palette" data-id="${m.id}"></div>`;
   grid.appendChild(card);
   renderPalette(card, m.id);
 
-  const panel = card.querySelector('.panel--model');
-  const el = card.querySelector('.viewer');
-  const v = new Viewer(m, el, panel);
-  v.dimEl = card.querySelector('.card__dim');
+  const v = new Viewer(m);
+  v.dimEl    = card.querySelector('.card__dim');
+  v.shotPanel = card.querySelector('.panel--model');
+  v.shotImg   = card.querySelector('.shot');
+  v.overlayEl = card.querySelector('.viewer__overlay');
+  v.pctEl     = card.querySelector('.pct');
   viewers.push(v);
-  card.querySelector('.btn-reset').addEventListener('click', ()=> v.reset());
-  const capBtn = card.querySelector('.btn-cap');
-  capBtn.addEventListener('click', ()=> captureAngles(v, capBtn));
+
+  v.shotPanel.addEventListener('click', ()=> openLightbox3D(v));
+  const skImg = card.querySelector('.sketch-img');
+  if(skImg){
+    card.querySelector('.panel--sketch').addEventListener('click',
+      ()=> openLightboxImg(skImg.currentSrc || skImg.src, `${m.label} ・ 原案スケッチ`));
+  }
 }
 
 /* ====== カラーパレット（指定HEX ＋ 近似PMS） ====== */
@@ -764,35 +851,77 @@ function downloadCanvas(canvas, filename){
 const PRELOAD_MARGIN = 320;   // 画面手前この距離に入ったら読み込み開始
 
 /* ====== 操作バー ====== */
-document.getElementById('seg-proj').addEventListener('click', (e)=>{
-  const b = e.target.closest('button'); if(!b) return;
-  setSeg('seg-proj', b);
-  state.mode = b.dataset.mode;
-  viewers.forEach(v => v.applyMode(state.mode));
-});
+function setSeg(id, btn){
+  const seg = document.getElementById(id); if(!seg || !btn) return;
+  seg.querySelectorAll('button').forEach(x=>x.classList.remove('on'));
+  btn.classList.add('on');
+}
 document.getElementById('seg-bg').addEventListener('click', (e)=>{
   const b = e.target.closest('button'); if(!b) return;
   setSeg('seg-bg', b);
   state.bg = b.dataset.bg;
+  document.body.classList.toggle('lb-dark', state.bg==='dark');
   document.querySelectorAll('.panel--model').forEach(p=>{
     p.classList.toggle('is-dark', state.bg==='dark');
     p.classList.toggle('is-light', state.bg==='light');
   });
-});
-document.getElementById('chk-rotate').addEventListener('change', (e)=>{
-  state.rotate = e.target.checked;
-  viewers.forEach(v => v.setAutoRotate(state.rotate));
+  rerenderStills();   // サムネのスクショを新しい背景で再生成
 });
 document.getElementById('btn-reload').addEventListener('click', ()=>{
-  // 更新印つきで再検出するため、素のURLでハードリロード
   location.href = location.pathname + '?r=' + (window.performance ? Math.floor(performance.now()) : 1);
 });
-function setSeg(id, btn){
-  document.getElementById(id).querySelectorAll('button').forEach(x=>x.classList.remove('on'));
-  btn.classList.add('on');
-}
 
-/* ====== 描画ループ ====== */
+/* ====== ライトボックス（クリックで拡大） ====== */
+let active = null, lbOpen = false;
+const lb        = document.getElementById('lightbox');
+const lbStage   = document.getElementById('lbStage');
+const lbViewer  = document.getElementById('lbViewer');
+const lbImg     = document.getElementById('lbImg');
+const lbCtls    = document.getElementById('lbCtls');
+const lbHint    = document.getElementById('lbHint');
+const lbTitle   = document.getElementById('lbTitle');
+const lbLoading = document.getElementById('lbLoading');
+
+function openLightbox3D(v){
+  active = v; lbOpen = true;
+  lbImg.hidden = true; lbViewer.hidden = false; lbCtls.hidden = false; lbHint.hidden = false;
+  lbTitle.textContent = `${String(v.id).toUpperCase()} ・ 3Dモデル`;
+  setSeg('lb-proj', [...document.querySelectorAll('#lb-proj button')].find(b=>b.dataset.mode===state.mode));
+  document.getElementById('lb-rotate').checked = state.rotate;
+  clearGL();
+  lb.hidden = false; document.body.classList.add('lb-open');
+  if(v.loaded){ lbLoading.hidden = true; v.activate(lbViewer); }
+  else { lbLoading.hidden = false; v.load(); }
+  startRenderLoop();
+}
+function openLightboxImg(src, title){
+  active = null; lbOpen = true;
+  lbViewer.hidden = true; lbImg.hidden = false; lbCtls.hidden = true; lbHint.hidden = true; lbLoading.hidden = true;
+  lbImg.src = src; lbTitle.textContent = title;
+  clearGL();   // 直前の3Dフレームがキャンバスに残って上に出るのを防ぐ
+  lb.hidden = false; document.body.classList.add('lb-open');
+}
+function closeLightbox(){
+  lbOpen = false; lb.hidden = true; document.body.classList.remove('lb-open');
+  if(active){ active.deactivate(); active = null; }
+  lbImg.removeAttribute('src');
+}
+document.getElementById('lbClose').addEventListener('click', closeLightbox);
+lb.querySelector('.lb__backdrop').addEventListener('click', closeLightbox);
+window.addEventListener('keydown', (e)=>{ if(e.key==='Escape' && lbOpen) closeLightbox(); });
+document.getElementById('lb-proj').addEventListener('click', (e)=>{
+  const b = e.target.closest('button'); if(!b || !active) return;
+  setSeg('lb-proj', b); state.mode = b.dataset.mode; active.applyMode(state.mode);
+});
+document.getElementById('lb-rotate').addEventListener('change', (e)=>{
+  state.rotate = e.target.checked; if(active) active.setAutoRotate(state.rotate);
+});
+document.getElementById('lbCap').addEventListener('click', ()=>{
+  if(active) captureAngles(active, document.getElementById('lbCap'));
+});
+document.getElementById('lbReset').addEventListener('click', ()=>{ if(active) active.reset(); });
+
+/* ====== サイズ・遅延ロード（通常時はrAFを回さない） ====== */
 function viewportSize(){
   const w = window.innerWidth || document.documentElement.clientWidth || 0;
   const h = window.innerHeight || document.documentElement.clientHeight || 0;
@@ -805,51 +934,57 @@ function resizeCanvas(){
     renderer.setSize(w, h, false);
   }
 }
-window.addEventListener('resize', resizeCanvas);
-
-function animate(){
-  requestAnimationFrame(animate);
-  resizeCanvas();
-
+function checkLazy(){
   const { w:vw, h:vh } = viewportSize();
+  for(const v of viewers){
+    if(v.loaded || v.loading || v.failed) continue;
+    const el = v.shotPanel; if(!el) continue;
+    const r = el.getBoundingClientRect();
+    if(r.bottom > -PRELOAD_MARGIN && r.top < vh + PRELOAD_MARGIN && r.right > 0 && r.left < vw) v.load();
+  }
+}
+let lazyScheduled = false;
+function scheduleLazy(){
+  if(lazyScheduled) return; lazyScheduled = true;
+  requestAnimationFrame(()=>{ lazyScheduled = false; checkLazy(); });
+}
+window.addEventListener('scroll', scheduleLazy, { passive:true });
+window.addEventListener('resize', ()=>{ resizeCanvas(); scheduleLazy(); });
+
+/* ====== 拡大中だけ回す描画ループ ====== */
+let rafId = null;
+function startRenderLoop(){ if(rafId == null) renderLoop(); }
+function renderLoop(){
+  if(!lbOpen || !active){ rafId = null; return; }
+  rafId = requestAnimationFrame(renderLoop);
+  resizeCanvas();
+  if(!active.loaded) return;
+
+  const { h:vh } = viewportSize();
   renderer.setScissorTest(false);
   renderer.setClearColor(0x000000, 0);
   renderer.clear();
-  renderer.setScissorTest(true);
 
-  const clearCol = BG[state.bg];
-
-  for(const v of viewers){
-    const r = v.element.getBoundingClientRect();
-    // 画面手前に入ったら遅延ロード開始
-    if(r.bottom > -PRELOAD_MARGIN && r.top < vh + PRELOAD_MARGIN && r.right > 0 && r.left < vw){
-      v.load();
-    }
-    // 描画はロード完了かつ画面内のものだけ（未ロードは透過のままDOMのスピナーを見せる）
-    if(!v.loaded) continue;
-    if(r.bottom < 0 || r.top > vh || r.right < 0 || r.left > vw) continue;
-    if(r.width < 2 || r.height < 2) continue;
-
+  const r = lbStage.getBoundingClientRect();
+  if(r.width > 2 && r.height > 2){
     const aspect = r.width / r.height;
-    if(v.camera.isPerspectiveCamera){
-      v.camera.aspect = aspect;
-      v.camera.updateProjectionMatrix();
+    if(active.camera.isPerspectiveCamera){
+      active.camera.aspect = aspect;
+      active.camera.updateProjectionMatrix();
     } else {
-      v.camera.top = v.orthoHalfH;
-      v.camera.bottom = -v.orthoHalfH;
-      v.camera.left = -v.orthoHalfH * aspect;
-      v.camera.right = v.orthoHalfH * aspect;
-      v.camera.updateProjectionMatrix();
+      active.camera.top = active.orthoHalfH;
+      active.camera.bottom = -active.orthoHalfH;
+      active.camera.left = -active.orthoHalfH * aspect;
+      active.camera.right = active.orthoHalfH * aspect;
+      active.camera.updateProjectionMatrix();
     }
-    v.controls.update();
-
-    const left = r.left;
-    const bottom = vh - r.bottom;
-    renderer.setViewport(left, bottom, r.width, r.height);
-    renderer.setScissor(left, bottom, r.width, r.height);
-    renderer.setClearColor(clearCol, 1);
+    if(active.controls) active.controls.update();
+    renderer.setViewport(r.left, vh - r.bottom, r.width, r.height);
+    renderer.setScissor(r.left, vh - r.bottom, r.width, r.height);
+    renderer.setScissorTest(true);
+    renderer.setClearColor(BG[state.bg], 1);
     renderer.clear();
-    renderer.render(v.scene, v.camera);
+    renderer.render(active.scene, active.camera);
   }
 }
 /* ====== 起動：自動検出 → カード生成 → 描画開始 ====== */
@@ -868,7 +1003,9 @@ async function startApp(){
     if(count) count.textContent = models.length + ' 点';
   }
   resizeCanvas();
-  animate();
+  checkLazy();
+  setTimeout(checkLazy, 300);
+  setTimeout(checkLazy, 1200);
 }
 
 /* ====== 閲覧パスワード（簡易ゲート / 平文は埋め込まずSHA-256で照合） ====== */
