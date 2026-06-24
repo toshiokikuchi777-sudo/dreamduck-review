@@ -338,7 +338,7 @@ const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, alpha:true })
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 0.78;
+renderer.toneMappingExposure = 0.70;
 renderer.autoClear = false;
 renderer.shadowMap.enabled = false;
 
@@ -367,12 +367,16 @@ class Viewer{
     this.scene = new THREE.Scene();
     this.scene.environment = envMap;
 
-    const hemi = new THREE.HemisphereLight(0xffffff, 0x9a8f7a, 0.30);
+    // 黒潰れ防止のフロア光（陰側を持ち上げる）
+    const ambient = new THREE.AmbientLight(0xffffff, 0.42);
+    this.scene.add(ambient);
+    const hemi = new THREE.HemisphereLight(0xffffff, 0xb8ad97, 0.40);
     this.scene.add(hemi);
-    const key = new THREE.DirectionalLight(0xffffff, 1.15);
+    // キーは弱め（明るい面を抑える）・フィルで反対側を補光
+    const key = new THREE.DirectionalLight(0xffffff, 0.68);
     key.position.set(3, 5, 4);
     this.scene.add(key);
-    const fill = new THREE.DirectionalLight(0xffffff, 0.35);
+    const fill = new THREE.DirectionalLight(0xffffff, 0.40);
     fill.position.set(-4, 1, -3);
     this.scene.add(fill);
 
