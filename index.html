@@ -584,11 +584,12 @@ function buildCard(m){
 
 /* ====== 各アングル一括撮影 → コンタクトシートPNG ====== */
 const CAPTURE_ANGLES = [
-  { name:'正面 Front', az:0,             ortho:true },
-  { name:'右 Right',   az:Math.PI/2,     ortho:true },
-  { name:'背面 Back',  az:Math.PI,       ortho:true },
-  { name:'左 Left',    az:-Math.PI/2,    ortho:true },
-  { name:'俯瞰 3/4',   az:Math.PI/5, pol:Math.PI/3.1, ortho:false },
+  { name:'正面 Front',        az:0,              ortho:true },
+  { name:'右 Right',          az:Math.PI/2,      ortho:true },
+  { name:'背面 Back',         az:Math.PI,        ortho:true },
+  { name:'左 Left',           az:-Math.PI/2,     ortho:true },
+  { name:'俯瞰 3/4',          az:Math.PI/5,    pol:Math.PI/3.1, ortho:false },
+  { name:'斜め後ろ俯瞰 Rear', az:Math.PI*0.78, pol:Math.PI/3.4, ortho:false },
 ];
 
 async function captureAngles(v, btn){
