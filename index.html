@@ -104,9 +104,21 @@
     box-shadow:var(--shadow); overflow:hidden;
   }
   .card__head{
-    display:flex; align-items:center; gap:12px;
+    display:flex; align-items:center; gap:10px; flex-wrap:wrap;
     padding:14px 20px; border-bottom:1px solid var(--line);
   }
+  .card__dim{
+    font-size:12px; color:var(--ink); background:#f1eee7; border:1px solid var(--line);
+    border-radius:7px; padding:3px 9px; font-weight:600; white-space:nowrap; cursor:help;
+    font-variant-numeric:tabular-nums;
+  }
+  .btn-cap{
+    appearance:none; border:1px solid var(--ink); background:var(--ink); cursor:pointer;
+    font:inherit; font-size:12px; font-weight:600; color:#fff;
+    padding:6px 13px; border-radius:999px; transition:.16s; display:inline-flex; align-items:center; gap:6px;
+  }
+  .btn-cap:hover{ background:#000; }
+  .btn-cap:disabled{ opacity:.55; cursor:default; }
   .card__no{
     font-weight:800; font-size:15px; letter-spacing:.04em;
     background:var(--ink); color:#fff; border-radius:8px; padding:4px 11px; line-height:1.2;
@@ -334,7 +346,7 @@ let state = { mode:'persp', bg:'light', rotate:false };
 
 /* ====== レンダラー（全カード共有） ====== */
 const canvas = document.getElementById('webgl');
-const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, alpha:true });
+const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, alpha:true, preserveDrawingBuffer:true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -360,6 +372,7 @@ class Viewer{
     this.element = el;
     this.panel = panel;
     this.loaded = false; this.loading = false; this.failed = false;
+    this.dimEl = null; this.dims = null;
     this.fov = 38;
     this.mode = 'persp';
     this.orthoHalfH = 1;
@@ -433,6 +446,11 @@ class Viewer{
 
         const radius = Math.max(size.length() / 2, 0.001);
         this.frameObject(radius);
+
+        this.dims = { x:size.x, y:size.y, z:size.z };
+        if(this.dimEl){
+          this.dimEl.textContent = `W ${size.x.toFixed(1)} × H ${size.y.toFixed(1)} × D ${size.z.toFixed(1)} mm`;
+        }
 
         this.loaded = true; this.loading = false;
         this.overlay.classList.add('hidden');
@@ -536,7 +554,9 @@ function buildCard(m){
     <div class="card__head">
       <span class="card__no ${m.secret?'secret':''}">${m.label}</span>
       <span class="card__file">models/${m.id}.glb${m.pngVer?` · sketches/${m.id}.png`:''}</span>
+      <span class="card__dim" title="GLBの書き出し寸法（mm想定）。W=幅 / H=高さ / D=奥行">寸法測定中…</span>
       <span class="spacer"></span>
+      <button class="btn-cap" type="button">📷 各アングル撮影</button>
       <button class="btn-reset" type="button">↺ 視点リセット</button>
     </div>
     <div class="card__body">
@@ -555,8 +575,124 @@ function buildCard(m){
   const panel = card.querySelector('.panel--model');
   const el = card.querySelector('.viewer');
   const v = new Viewer(m, el, panel);
+  v.dimEl = card.querySelector('.card__dim');
   viewers.push(v);
   card.querySelector('.btn-reset').addEventListener('click', ()=> v.reset());
+  const capBtn = card.querySelector('.btn-cap');
+  capBtn.addEventListener('click', ()=> captureAngles(v, capBtn));
+}
+
+/* ====== 各アングル一括撮影 → コンタクトシートPNG ====== */
+const CAPTURE_ANGLES = [
+  { name:'正面 Front', az:0,             ortho:true },
+  { name:'右 Right',   az:Math.PI/2,     ortho:true },
+  { name:'背面 Back',  az:Math.PI,       ortho:true },
+  { name:'左 Left',    az:-Math.PI/2,    ortho:true },
+  { name:'俯瞰 3/4',   az:Math.PI/5, pol:Math.PI/3.1, ortho:false },
+];
+
+async function captureAngles(v, btn){
+  if(!v.loaded){
+    if(btn){ const t=btn.textContent; btn.textContent='読み込み待ち…'; setTimeout(()=>btn.textContent=t,1300); }
+    v.load();
+    return;
+  }
+  if(btn){ btn.disabled=true; btn._t=btn.textContent; btn.textContent='撮影中…'; }
+  try{
+    const SIZE = 1000;
+    const prev = new THREE.Vector2(); renderer.getSize(prev);
+    const prevPR = renderer.getPixelRatio();
+    renderer.setScissorTest(false);
+    renderer.setPixelRatio(1);
+    renderer.setSize(SIZE, SIZE, false);
+
+    const shots = [];
+    for(const a of CAPTURE_ANGLES){
+      const pol = (a.pol != null) ? a.pol : Math.PI/2;
+      const dir = new THREE.Vector3().setFromSphericalCoords(1, pol, a.az);
+      let cam;
+      if(a.ortho){
+        const h = v.radius * 1.06;
+        cam = new THREE.OrthographicCamera(-h, h, h, -h, -v.radius*40, v.radius*40);
+        cam.position.copy(dir.clone().multiplyScalar(v.radius * 6));
+      } else {
+        cam = new THREE.PerspectiveCamera(v.fov, 1, 0.01, v.radius*400);
+        const dist = (v.radius / Math.sin((v.fov*Math.PI/180)/2)) * 1.12;
+        cam.position.copy(dir.clone().multiplyScalar(dist));
+      }
+      cam.up.set(0,1,0);
+      cam.lookAt(0,0,0);
+      cam.updateProjectionMatrix();
+      renderer.setViewport(0,0,SIZE,SIZE);
+      renderer.setClearColor(BG[state.bg], 1);
+      renderer.clear();
+      renderer.render(v.scene, cam);
+      shots.push({ name:a.name, url: renderer.domElement.toDataURL('image/png') });
+    }
+
+    renderer.setPixelRatio(prevPR);
+    renderer.setSize(prev.x, prev.y, false);
+    renderer.setScissorTest(true);
+
+    await composeAndDownload(v, shots);
+  } catch(e){
+    console.error('capture error', e);
+    alert('撮影に失敗しました: ' + e.message);
+  } finally {
+    if(btn){ btn.disabled=false; btn.textContent = btn._t || '📷 各アングル撮影'; }
+  }
+}
+
+function loadImg(url){ return new Promise((res,rej)=>{ const i=new Image(); i.onload=()=>res(i); i.onerror=rej; i.src=url; }); }
+
+async function composeAndDownload(v, shots){
+  const imgs = await Promise.all(shots.map(s => loadImg(s.url)));
+  const tile=560, pad=22, cols=3, labelH=36, headH=104;
+  const rows=Math.ceil(shots.length/cols);
+  const W = cols*tile + (cols+1)*pad;
+  const H = headH + rows*(tile+labelH+pad) + pad;
+  const c = document.createElement('canvas'); c.width=W; c.height=H;
+  const ctx = c.getContext('2d');
+  const dark = state.bg==='dark';
+
+  ctx.fillStyle = dark ? '#1b1b1b' : '#ffffff';
+  ctx.fillRect(0,0,W,H);
+  ctx.textBaseline='top';
+  ctx.fillStyle = dark ? '#ffffff' : '#1c1b19';
+  ctx.font = '700 34px "Helvetica Neue", Arial, sans-serif';
+  ctx.fillText(`DreamDuck  ${String(v.id).toUpperCase()}`, pad, 26);
+  ctx.font = '500 19px "Helvetica Neue", Arial, sans-serif';
+  ctx.fillStyle = dark ? '#bcbcbc' : '#8a857c';
+  const d = v.dims;
+  const dt = d ? `W ${d.x.toFixed(1)} × H ${d.y.toFixed(1)} × D ${d.z.toFixed(1)} mm` : '';
+  ctx.fillText(`Sekiya Yurie Model     ·     ${dt}`, pad, 66);
+
+  for(let i=0;i<imgs.length;i++){
+    const r = Math.floor(i/cols), col = i%cols;
+    const x = pad + col*(tile+pad);
+    const y = headH + pad + r*(tile+labelH+pad);
+    ctx.fillStyle = dark ? '#252525' : '#f3f1ec';
+    ctx.fillRect(x, y, tile, tile);
+    ctx.drawImage(imgs[i], x, y, tile, tile);
+    ctx.strokeStyle = dark ? '#3a3a3a' : '#e2ddd2'; ctx.lineWidth=1;
+    ctx.strokeRect(x+0.5, y+0.5, tile-1, tile-1);
+    ctx.fillStyle = dark ? '#dddddd' : '#555555';
+    ctx.font = '600 18px "Helvetica Neue", Arial, sans-serif';
+    ctx.textAlign='center';
+    ctx.fillText(shots[i].name, x + tile/2, y + tile + 9);
+    ctx.textAlign='left';
+  }
+  downloadCanvas(c, `DreamDuck_${v.id}_angles.png`);
+}
+
+function downloadCanvas(canvas, filename){
+  canvas.toBlob((blob)=>{
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=> URL.revokeObjectURL(url), 2000);
+  }, 'image/png');
 }
 
 /* ====== 遅延ロード（描画ループ内の可視判定で発火） ====== */
