@@ -1,0 +1,80 @@
+[
+  {
+    "slug": "standard",
+    "label": "スタンダード（口閉じ・羽横・顔通常）",
+    "ref": true,
+    "factor": 1.0,
+    "w": 50.64,
+    "h": 60.08,
+    "d": 62.95,
+    "tris": 162642,
+    "verts": 80892,
+    "stlMB": 7.8,
+    "objMB": 5.0
+  },
+  {
+    "slug": "awa-01",
+    "label": "awa（泡）",
+    "ref": false,
+    "factor": 0.93255,
+    "w": 50.64,
+    "h": 68.84,
+    "d": 70.08,
+    "tris": 209334,
+    "verts": 104685,
+    "stlMB": 10.0,
+    "objMB": 6.5
+  },
+  {
+    "slug": "hana-01",
+    "label": "hana（花）",
+    "ref": false,
+    "factor": 0.93255,
+    "w": 50.64,
+    "h": 62.26,
+    "d": 65.63,
+    "tris": 660224,
+    "verts": 330203,
+    "stlMB": 31.5,
+    "objMB": 22.0
+  },
+  {
+    "slug": "tetuko-01",
+    "label": "tetuko",
+    "ref": false,
+    "factor": 0.93255,
+    "w": 50.64,
+    "h": 62.26,
+    "d": 67.64,
+    "tris": 250866,
+    "verts": 125449,
+    "stlMB": 12.0,
+    "objMB": 8.0
+  },
+  {
+    "slug": "trebi-01",
+    "label": "trebi",
+    "ref": false,
+    "factor": 0.93255,
+    "w": 50.64,
+    "h": 64.03,
+    "d": 65.63,
+    "tris": 436231,
+    "verts": 218121,
+    "stlMB": 20.8,
+    "objMB": 14.3
+  },
+  {
+    "slug": "Special-01",
+    "label": "Special",
+    "ref": false,
+    "factor": 0.93255,
+    "w": 50.64,
+    "h": 62.26,
+    "d": 65.8,
+    "tris": 587214,
+    "verts": 293694,
+    "stlMB": 28.0,
+    "objMB": 19.5
+  }
+]

@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex, nofollow" />
+<title>DreamDuck — 造形データ (STL/OBJ) | Sekiya Yurie Model</title>
+<style>
+  :root{
+    --bg:#ece9e3; --ink:#1c1b19; --ink-soft:#6b675f; --line:#d9d4ca; --card:#fff;
+    --accent:#f4b400; --accent-2:#ffcf4d; --shadow:0 1px 2px rgba(0,0,0,.04),0 12px 32px -12px rgba(0,0,0,.18); --radius:18px;
+  }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; }
+  body{ background:var(--bg); color:var(--ink);
+    font-family:"Helvetica Neue",Arial,"Hiragino Kaku Gothic ProN","Hiragino Sans","Yu Gothic","Noto Sans JP",sans-serif;
+    -webkit-font-smoothing:antialiased; line-height:1.6; }
+
+  #webgl{ position:fixed; inset:0; width:100vw; height:100vh; z-index:-1; pointer-events:none; display:block; }
+  body.lb-open #webgl{ z-index:1960; }
+  .site{ position:relative; }
+
+  header.hero{ padding:48px 24px 26px; text-align:center; border-bottom:1px solid var(--line); }
+  .hero .kicker{ font-size:12px; letter-spacing:.42em; text-transform:uppercase; color:var(--ink-soft); margin:0 0 12px; }
+  .hero h1{ margin:0; font-size:clamp(30px,6vw,52px); font-weight:800; letter-spacing:-.02em; }
+  .hero h1 .duck{ position:relative; }
+  .hero h1 .duck::after{ content:""; display:inline-block; width:.6em; height:.6em; margin-left:.14em; background:var(--accent); border-radius:50% 50% 50% 0; transform:rotate(45deg); vertical-align:.04em; }
+  .hero .byline{ margin:14px 0 0; font-size:clamp(14px,2.4vw,19px); font-weight:600; }
+  .hero .byline b{ background:linear-gradient(transparent 62%,var(--accent-2) 62%); padding:0 .12em; }
+  .hero .sub{ margin:8px 0 0; color:var(--ink-soft); font-size:14px; letter-spacing:.04em; }
+
+  .toolbar{ position:sticky; top:0; z-index:30; background:rgba(236,233,227,.86);
+    -webkit-backdrop-filter:saturate(160%) blur(12px); backdrop-filter:saturate(160%) blur(12px);
+    border-bottom:1px solid var(--line); display:flex; flex-wrap:wrap; gap:14px 20px; justify-content:center; align-items:center; padding:12px 20px; }
+  .ctl{ display:flex; align-items:center; gap:9px; }
+  .ctl > .lbl{ font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--ink-soft); }
+  .seg{ display:inline-flex; background:#e3ded5; border:1px solid var(--line); border-radius:999px; padding:3px; }
+  .seg button{ appearance:none; border:0; background:transparent; cursor:pointer; font:inherit; font-size:13px; font-weight:600; color:var(--ink-soft); padding:6px 15px; border-radius:999px; line-height:1; transition:.18s; }
+  .seg button.on{ background:var(--ink); color:#fff; }
+  .nav-link{ font-size:13px; font-weight:600; color:var(--ink); text-decoration:none; border:1px solid var(--line); background:#fff; border-radius:999px; padding:7px 14px; transition:.16s; }
+  .nav-link:hover{ border-color:var(--accent); box-shadow:0 0 0 3px rgba(244,180,0,.18); }
+  .tb-hint{ font-size:12px; color:var(--ink-soft); }
+  @media (max-width:680px){ .tb-hint{ display:none; } }
+
+  main{ max-width:1180px; margin:0 auto; padding:28px 20px 90px; }
+  .note{ max-width:1140px; margin:0 auto 20px; font-size:13px; color:var(--ink-soft); background:#fff; border:1px solid var(--line); border-radius:12px; padding:12px 16px; }
+  .note b{ color:var(--ink); }
+  .grid{ display:flex; flex-direction:column; gap:24px; }
+
+  .card{ background:var(--card); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow); overflow:hidden; }
+  .card.ref{ border-color:var(--accent); box-shadow:0 0 0 2px rgba(244,180,0,.25), var(--shadow); }
+  .card__head{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; padding:14px 20px; border-bottom:1px solid var(--line); }
+  .card__no{ font-weight:800; font-size:14px; background:var(--ink); color:#fff; border-radius:8px; padding:4px 11px; }
+  .card.ref .card__no{ background:var(--accent); color:var(--ink); }
+  .card__file{ font-size:12px; color:var(--ink-soft); font-family:ui-monospace,Menlo,Consolas,monospace; }
+  .badge{ font-size:11px; font-weight:700; border-radius:7px; padding:3px 9px; border:1px solid var(--line); background:#f1eee7; color:var(--ink); }
+  .badge.ok{ background:#e7f4ea; border-color:#bfe0c8; color:#1f7a3d; }
+
+  .card__body{ display:grid; grid-template-columns:1fr 1fr; gap:0; }
+  @media (max-width:760px){ .card__body{ grid-template-columns:1fr; } }
+  .panel{ position:relative; min-height:320px; display:flex; align-items:center; justify-content:center; }
+  .panel + .panel{ border-left:1px solid var(--line); }
+  @media (max-width:760px){ .panel + .panel{ border-left:0; border-top:1px solid var(--line); } }
+  .panel__tag{ position:absolute; top:12px; left:12px; z-index:6; font-size:11px; font-weight:700; letter-spacing:.1em; background:rgba(28,27,25,.78); color:#fff; padding:4px 9px; border-radius:7px; pointer-events:none; }
+  .panel--model.is-light{ background:#f3f1ec; }
+  .panel--model.is-dark{ background:#232323; }
+  .panel--model.zoomable{ cursor:zoom-in; }
+  .panel--model.zoomable::after{ content:"🔍 クリックで拡大"; position:absolute; right:10px; bottom:10px; z-index:6; font-size:11px; font-weight:600; color:var(--ink); background:rgba(255,255,255,.92); border:1px solid var(--line); border-radius:999px; padding:4px 11px; opacity:0; transform:translateY(4px); transition:.18s; pointer-events:none; }
+  .panel--model.zoomable:hover::after{ opacity:1; transform:translateY(0); }
+  .panel--model.is-dark.zoomable::after{ background:rgba(0,0,0,.5); color:#eee; border-color:rgba(255,255,255,.18); }
+  .panel--model .shot{ max-width:100%; max-height:320px; object-fit:contain; display:block; opacity:0; transition:opacity .35s; padding:6px; }
+  .viewer__overlay{ position:absolute; inset:0; z-index:7; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; color:var(--ink-soft); pointer-events:none; transition:opacity .4s; }
+  .viewer__overlay.hidden{ opacity:0; }
+  .panel--model.is-dark .viewer__overlay{ color:#cfcfcf; }
+  .spinner{ width:34px; height:34px; border-radius:50%; border:3px solid rgba(128,128,128,.25); border-top-color:var(--accent); animation:spin 1s linear infinite; }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+  .viewer__overlay .pct{ font-size:12px; font-weight:600; }
+
+  /* 情報パネル（寸法・DL） */
+  .info{ padding:22px 24px; display:flex; flex-direction:column; gap:16px; justify-content:center; }
+  .dims{ display:grid; grid-template-columns:auto 1fr; gap:6px 16px; align-items:baseline; }
+  .dims .k{ font-size:12px; color:var(--ink-soft); letter-spacing:.08em; }
+  .dims .v{ font-size:20px; font-weight:800; font-variant-numeric:tabular-nums; }
+  .dims .v small{ font-size:13px; font-weight:600; color:var(--ink-soft); margin-left:3px; }
+  .meta{ font-size:12px; color:var(--ink-soft); display:flex; flex-wrap:wrap; gap:6px 14px; }
+  .dl{ display:flex; gap:10px; flex-wrap:wrap; }
+  .dl a{ display:inline-flex; align-items:center; gap:7px; font-size:13px; font-weight:700; text-decoration:none; padding:9px 16px; border-radius:11px; transition:.15s; }
+  .dl a.stl{ background:var(--ink); color:#fff; }
+  .dl a.stl:hover{ background:#000; }
+  .dl a.obj{ background:#fff; color:var(--ink); border:1px solid var(--line); }
+  .dl a.obj:hover{ border-color:var(--accent); }
+
+  /* ライトボックス */
+  .lb[hidden]{ display:none; }
+  .lb{ position:fixed; inset:0; z-index:1850; display:flex; }
+  .lb__backdrop{ position:absolute; inset:0; background:rgba(22,21,18,.80); -webkit-backdrop-filter:blur(5px); backdrop-filter:blur(5px); }
+  .lb__panel{ position:relative; z-index:1950; margin:auto; width:min(1120px,95vw); height:min(90vh,940px); background:var(--card); border-radius:18px; box-shadow:0 36px 90px -24px rgba(0,0,0,.65); display:flex; flex-direction:column; overflow:hidden; }
+  .lb__head{ display:flex; align-items:center; gap:12px; padding:11px 14px; border-bottom:1px solid var(--line); flex-wrap:wrap; }
+  .lb__title{ font-weight:800; font-size:15px; }
+  .lb__dim{ font-size:12px; color:var(--ink-soft); font-variant-numeric:tabular-nums; }
+  .lb__spacer{ flex:1; }
+  .lb__ctls{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .btn-reset{ appearance:none; border:1px solid var(--line); background:#fff; cursor:pointer; font:inherit; font-size:12px; font-weight:600; color:var(--ink-soft); padding:6px 12px; border-radius:999px; }
+  .btn-reset:hover{ color:var(--ink); border-color:#c4bdb0; }
+  .switch{ display:inline-flex; align-items:center; gap:8px; cursor:pointer; user-select:none; font-size:13px; font-weight:600; }
+  .switch input{ display:none; }
+  .switch .track{ width:38px; height:22px; border-radius:999px; background:#cfc9bd; position:relative; transition:.2s; }
+  .switch .track::after{ content:""; position:absolute; top:3px; left:3px; width:16px; height:16px; border-radius:50%; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.3); transition:.2s; }
+  .switch input:checked + .track{ background:var(--accent); }
+  .switch input:checked + .track::after{ transform:translateX(16px); }
+  .lb__close{ width:34px; height:34px; border-radius:50%; border:1px solid var(--line); background:#fff; cursor:pointer; font-size:14px; }
+  .lb__close:hover{ background:#f1eee7; }
+  .lb__stage{ position:relative; flex:1; min-height:0; background:#f3f1ec; }
+  body.lb-dark .lb__stage{ background:#232323; }
+  .lb__viewer{ position:absolute; inset:0; touch-action:none; cursor:grab; }
+  .lb__viewer:active{ cursor:grabbing; }
+  .lb__loading{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; }
+  .lb__loading[hidden]{ display:none; }
+  .lb__hint{ text-align:center; font-size:12px; color:var(--ink-soft); padding:8px; border-top:1px solid var(--line); }
+
+  footer{ text-align:center; color:var(--ink-soft); font-size:12px; padding:30px 20px 50px; letter-spacing:.05em; }
+  .empty{ max-width:560px; margin:60px auto; padding:26px 28px; text-align:center; line-height:1.9; background:#fff; border:1px solid var(--line); border-radius:14px; color:var(--ink-soft); box-shadow:var(--shadow); }
+
+  /* ロック */
+  .lock{ position:fixed; inset:0; z-index:1000; display:flex; align-items:center; justify-content:center; padding:24px;
+    background:radial-gradient(1100px 560px at 50% -12%,#fff4cf 0%,rgba(255,244,207,0) 62%),var(--bg); transition:opacity .35s; }
+  .lock.hidden{ opacity:0; pointer-events:none; }
+  .lock__card{ width:min(380px,92vw); background:var(--card); border:1px solid var(--line); border-radius:20px; box-shadow:var(--shadow); padding:34px 30px 30px; text-align:center; }
+  .lock__card.shake{ animation:shake .4s; }
+  @keyframes shake{ 0%,100%{transform:translateX(0)} 20%,60%{transform:translateX(-7px)} 40%,80%{transform:translateX(7px)} }
+  .lock__brand{ font-size:30px; font-weight:800; letter-spacing:-.02em; }
+  .lock__dot{ display:inline-block; width:.5em; height:.5em; margin-left:.16em; background:var(--accent); border-radius:50% 50% 50% 0; transform:rotate(45deg); }
+  .lock__sub{ margin:6px 0 0; font-size:13px; font-weight:600; color:var(--ink-soft); }
+  .lock__msg{ margin:22px 0 14px; font-size:13px; color:var(--ink-soft); }
+  .lock__form{ display:flex; gap:8px; }
+  .lock__form input{ flex:1; min-width:0; font:inherit; font-size:15px; padding:11px 14px; border:1px solid var(--line); border-radius:11px; background:#fbfaf7; color:var(--ink); outline:none; }
+  .lock__form input:focus{ border-color:var(--accent); box-shadow:0 0 0 3px rgba(244,180,0,.2); }
+  .lock__form button{ font:inherit; font-weight:700; font-size:14px; padding:0 18px; border:0; border-radius:11px; background:var(--ink); color:#fff; cursor:pointer; }
+  .lock__err{ margin:14px 0 0; font-size:13px; color:#c0392b; font-weight:600; }
+</style>
+</head>
+<body>
+
+<div id="lock" class="lock">
+  <div class="lock__card">
+    <div class="lock__brand">DreamDuck<i class="lock__dot"></i></div>
+    <p class="lock__sub">Sekiya Yurie Model</p>
+    <p class="lock__msg">閲覧用パスワードを入力してください</p>
+    <form id="lock__form" class="lock__form" autocomplete="off">
+      <input id="lock__input" type="password" placeholder="パスワード" aria-label="パスワード" />
+      <button type="submit">入室</button>
+    </form>
+    <p id="lock__err" class="lock__err" hidden>パスワードが違います</p>
+  </div>
+</div>
+
+<canvas id="webgl"></canvas>
+
+<div id="lightbox" class="lb" hidden>
+  <div class="lb__backdrop"></div>
+  <div class="lb__panel">
+    <div class="lb__head">
+      <span class="lb__title" id="lbTitle"></span>
+      <span class="lb__dim" id="lbDim"></span>
+      <span class="lb__spacer"></span>
+      <div class="lb__ctls">
+        <label class="switch"><input type="checkbox" id="lb-rotate" /><span class="track"></span><span>回転</span></label>
+        <button class="btn-reset" id="lbReset" type="button">↺ リセット</button>
+      </div>
+      <button class="lb__close" id="lbClose" type="button" aria-label="閉じる">✕</button>
+    </div>
+    <div class="lb__stage" id="lbStage">
+      <div class="lb__viewer" id="lbViewer"></div>
+      <div class="lb__loading" id="lbLoading" hidden><div class="spinner"></div></div>
+    </div>
+    <div class="lb__hint">ドラッグで回転 ・ ホイール / ピンチで拡大縮小</div>
+  </div>
+</div>
+
+<div class="site">
+  <header class="hero">
+    <p class="kicker">3D Sculpt Data · STL / OBJ</p>
+    <h1><span class="duck">DreamDuck</span></h1>
+    <p class="byline"><b>Sekiya Yurie Model</b></p>
+    <p class="sub">造形データ（スケール調整済み）・<span id="count">読み込み中…</span></p>
+  </header>
+
+  <div class="toolbar">
+    <a class="nav-link" href="index.html">← カラー版レビューへ</a>
+    <div class="ctl">
+      <span class="lbl">背景</span>
+      <div class="seg" id="seg-bg">
+        <button data-bg="light" class="on">ライト</button>
+        <button data-bg="dark">ダーク</button>
+      </div>
+    </div>
+    <span class="tb-hint">3Dをクリックで拡大（ぐりぐり回せます）</span>
+  </div>
+
+  <main>
+    <div class="note">
+      全モデルの<b>横幅を「スタンダード（口閉じ・羽横・顔通常）」＝ W 50.64&nbsp;mm に統一</b>し、
+      同じ倍率（<b>×0.9326</b>）で縦・奥行きも縮小しました（各モデル固有のプロポーションは保持）。単位は mm。
+    </div>
+    <div class="grid" id="grid"></div>
+  </main>
+
+  <footer><b style="color:var(--ink)">DreamDuck</b> / Sekiya Yurie Model · Sculpt Data (STL/OBJ)</footer>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { STLLoader } from 'three/addons/loaders/STLLoader.js';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+const BG = { light:new THREE.Color(0xf3f1ec), dark:new THREE.Color(0x232323) };
+let state = { bg:'light', rotate:false };
+
+const canvas = document.getElementById('webgl');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, alpha:true, preserveDrawingBuffer:true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 0.85;
+renderer.autoClear = false;
+const pmrem = new THREE.PMREMGenerator(renderer);
+const envMap = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+
+const stl = new STLLoader();
+const DEG = Math.PI/180;
+// 樹脂/クレイ風マテリアル（STLは色なし）
+function sculptMat(){ return new THREE.MeshStandardMaterial({ color:0xe9e4da, roughness:0.62, metalness:0.0, envMapIntensity:0.9 }); }
+
+class Viewer{
+  constructor(item){
+    this.slug=item.slug; this.item=item;
+    this.loaded=false; this.loading=false; this.failed=false;
+    this.controls=null; this.lbEl=null;
+    this.fov=38; this.target=new THREE.Vector3();
+    this.shotPanel=null; this.shotImg=null; this.overlayEl=null; this.pctEl=null;
+    this.scene=new THREE.Scene(); this.scene.environment=envMap;
+    this.scene.add(new THREE.AmbientLight(0xffffff,0.5));
+    this.scene.add(new THREE.HemisphereLight(0xffffff,0xc2b8a3,0.45));
+    const key=new THREE.DirectionalLight(0xffffff,0.75); key.position.set(3,5,4); this.scene.add(key);
+    const fill=new THREE.DirectionalLight(0xffffff,0.45); fill.position.set(-4,1,-3); this.scene.add(fill);
+    const rim=new THREE.DirectionalLight(0xffffff,1.0); rim.position.set(-3,4,-6); this.scene.add(rim);
+    const top=new THREE.DirectionalLight(0xffffff,0.4); top.position.set(0.5,6,0.5); this.scene.add(top);
+    this.persp=new THREE.PerspectiveCamera(this.fov,1,0.01,4000);
+    this.camera=this.persp;
+    this.home={ pos:new THREE.Vector3(2,1.2,3), target:new THREE.Vector3() };
+  }
+  makeControls(el){
+    const c=new OrbitControls(this.camera,el);
+    c.enableDamping=true; c.dampingFactor=0.08; c.enablePan=false;
+    c.minDistance=0.001; c.maxDistance=8000; c.autoRotateSpeed=1.6; c.autoRotate=state.rotate;
+    c.target.copy(this.target); c.update(); return c;
+  }
+  load(){
+    if(this.loaded||this.loading||this.failed) return;
+    this.loading=true;
+    if(this.overlayEl) this.overlayEl.classList.remove('hidden');
+    stl.load(`meshes/${this.slug}.stl`,
+      (geo)=>{
+        geo.center(); geo.computeVertexNormals();
+        const mesh=new THREE.Mesh(geo, sculptMat());
+        this.scene.add(mesh);
+        geo.computeBoundingSphere();
+        this.frameObject(geo.boundingSphere.radius);
+        this.loaded=true; this.loading=false;
+        renderStill(this);
+        if(this.overlayEl){ this.overlayEl.classList.add('hidden'); setTimeout(()=>{ if(this.overlayEl) this.overlayEl.style.display='none'; },420); }
+        if(active===this && lbOpen){ lbLoading.hidden=true; this.activate(lbViewer); }
+      },
+      (xhr)=>{ if(this.pctEl){ this.pctEl.textContent = xhr.total ? Math.round(xhr.loaded/xhr.total*100)+'%' : Math.round(xhr.loaded/1048576)+' MB'; } },
+      (err)=>{ console.error('STL load error',this.slug,err); this.loading=false; this.failed=true;
+        if(this.overlayEl){ this.overlayEl.innerHTML='<div class="pct">読み込み失敗<br>meshes/'+this.slug+'.stl</div>'; } }
+    );
+  }
+  frameObject(radius){
+    this.radius=radius;
+    const dist=(radius/Math.sin((this.fov*DEG)/2))*1.15;
+    const dir=new THREE.Vector3(0.5,0.32,1).normalize();
+    const pos=dir.multiplyScalar(dist);
+    this.persp.near=dist/200; this.persp.far=dist*200;
+    this.persp.position.copy(pos); this.persp.lookAt(0,0,0);
+    this.home={ pos:pos.clone(), target:new THREE.Vector3() };
+    this.target.set(0,0,0);
+  }
+  activate(el){
+    this.lbEl=el;
+    if(this.controls){ this.controls.dispose(); this.controls=null; }
+    this.controls=this.makeControls(el);
+  }
+  deactivate(){ if(this.controls){ this.controls.dispose(); this.controls=null; } this.lbEl=null; }
+  reset(){ if(!this.home) return; this.persp.position.copy(this.home.pos); this.target.set(0,0,0); this.camera.lookAt(0,0,0); if(this.controls){ this.controls.target.set(0,0,0); this.controls.update(); } }
+  setAutoRotate(v){ if(this.controls) this.controls.autoRotate=v; }
+}
+
+function renderStill(v){
+  if(!v.loaded||!v.shotImg) return;
+  const SIZE=720;
+  const prev=new THREE.Vector2(); renderer.getSize(prev); const prevPR=renderer.getPixelRatio();
+  renderer.setScissorTest(false); renderer.setPixelRatio(1); renderer.setSize(SIZE,SIZE,false);
+  const cam=new THREE.PerspectiveCamera(v.fov,1,0.01,v.radius*400);
+  cam.position.copy(v.home.pos); cam.up.set(0,1,0); cam.lookAt(0,0,0); cam.updateProjectionMatrix();
+  renderer.setViewport(0,0,SIZE,SIZE); renderer.setClearColor(BG[state.bg],1); renderer.clear();
+  renderer.render(v.scene,cam);
+  v.shotImg.src=renderer.domElement.toDataURL('image/png'); v.shotImg.style.opacity='1';
+  renderer.setPixelRatio(prevPR); renderer.setSize(prev.x,prev.y,false);
+}
+function rerenderStills(){ viewers.forEach(v=>{ if(v.loaded) renderStill(v); }); }
+function clearGL(){ renderer.setScissorTest(false); renderer.setClearColor(0x000000,0); renderer.clear(); }
+
+const grid=document.getElementById('grid');
+const viewers=[];
+function buildCard(item,i){
+  const card=document.createElement('section'); card.className='card'+(item.ref?' ref':'');
+  card.innerHTML=`
+    <div class="card__head">
+      <span class="card__no">${String(i+1).padStart(2,'0')}</span>
+      <span class="card__file">${item.slug}.stl / .obj</span>
+      <span style="font-weight:700;font-size:13px">${item.label}</span>
+      <span style="flex:1"></span>
+      ${item.ref
+        ? '<span class="badge ok">基準スケール</span>'
+        : `<span class="badge">×${item.factor} 縮小</span><span class="badge ok">幅を基準に統一</span>`}
+    </div>
+    <div class="card__body">
+      <div class="panel panel--model is-${state.bg} zoomable">
+        <span class="panel__tag">3Dモデル / STL</span>
+        <img class="shot" alt="${item.slug}" />
+        <div class="viewer__overlay"><div class="spinner"></div><div class="pct">準備中…</div></div>
+      </div>
+      <div class="panel info">
+        <div class="dims">
+          <span class="k">横幅 W</span><span class="v">${item.w}<small>mm</small></span>
+          <span class="k">高さ H</span><span class="v">${item.h}<small>mm</small></span>
+          <span class="k">奥行 D</span><span class="v">${item.d}<small>mm</small></span>
+        </div>
+        <div class="meta">
+          <span>三角形 ${item.tris.toLocaleString()}</span>
+          <span>頂点 ${item.verts.toLocaleString()}</span>
+          ${item.ref?'<span>基準（無変更）</span>':`<span>スケール ×${item.factor}</span>`}
+        </div>
+        <div class="dl">
+          <a class="stl" href="meshes/${item.slug}.stl" download>⬇ STL <span style="opacity:.7">${item.stlMB}MB</span></a>
+          <a class="obj" href="meshes/${item.slug}.obj" download>⬇ OBJ <span style="opacity:.7">${item.objMB}MB</span></a>
+        </div>
+      </div>
+    </div>`;
+  grid.appendChild(card);
+  const v=new Viewer(item);
+  v.shotPanel=card.querySelector('.panel--model');
+  v.shotImg=card.querySelector('.shot');
+  v.overlayEl=card.querySelector('.viewer__overlay');
+  v.pctEl=card.querySelector('.pct');
+  viewers.push(v);
+  v.shotPanel.addEventListener('click', ()=> openLightbox(v));
+}
+
+/* ライトボックス */
+let active=null, lbOpen=false;
+const lb=document.getElementById('lightbox');
+const lbStage=document.getElementById('lbStage');
+const lbViewer=document.getElementById('lbViewer');
+const lbLoading=document.getElementById('lbLoading');
+const lbTitle=document.getElementById('lbTitle');
+const lbDim=document.getElementById('lbDim');
+function openLightbox(v){
+  active=v; lbOpen=true;
+  lbTitle.textContent=`${v.item.label}`;
+  lbDim.textContent=`W ${v.item.w} × H ${v.item.h} × D ${v.item.d} mm`;
+  document.getElementById('lb-rotate').checked=state.rotate;
+  clearGL();
+  lb.hidden=false; document.body.classList.add('lb-open');
+  if(v.loaded){ lbLoading.hidden=true; v.activate(lbViewer); }
+  else { lbLoading.hidden=false; v.load(); }
+  startRenderLoop();
+}
+function closeLightbox(){ lbOpen=false; lb.hidden=true; document.body.classList.remove('lb-open'); if(active){ active.deactivate(); active=null; } }
+document.getElementById('lbClose').addEventListener('click', closeLightbox);
+lb.querySelector('.lb__backdrop').addEventListener('click', closeLightbox);
+window.addEventListener('keydown', e=>{ if(e.key==='Escape'&&lbOpen) closeLightbox(); });
+document.getElementById('lb-rotate').addEventListener('change', e=>{ state.rotate=e.target.checked; if(active) active.setAutoRotate(state.rotate); });
+document.getElementById('lbReset').addEventListener('click', ()=>{ if(active) active.reset(); });
+
+document.getElementById('seg-bg').addEventListener('click', e=>{
+  const b=e.target.closest('button'); if(!b) return;
+  document.getElementById('seg-bg').querySelectorAll('button').forEach(x=>x.classList.remove('on')); b.classList.add('on');
+  state.bg=b.dataset.bg;
+  document.body.classList.toggle('lb-dark', state.bg==='dark');
+  document.querySelectorAll('.panel--model').forEach(p=>{ p.classList.toggle('is-dark',state.bg==='dark'); p.classList.toggle('is-light',state.bg==='light'); });
+  rerenderStills();
+});
+
+/* サイズ・遅延ロード */
+function viewportSize(){ return { w: window.innerWidth||document.documentElement.clientWidth||0, h: window.innerHeight||document.documentElement.clientHeight||0 }; }
+function resizeCanvas(){ const {w,h}=viewportSize(); const pr=renderer.getPixelRatio(); if(canvas.width!==Math.floor(w*pr)||canvas.height!==Math.floor(h*pr)) renderer.setSize(w,h,false); }
+const PRELOAD=340;
+function checkLazy(){ const {w:vw,h:vh}=viewportSize(); for(const v of viewers){ if(v.loaded||v.loading||v.failed) continue; const el=v.shotPanel; if(!el) continue; const r=el.getBoundingClientRect(); if(r.bottom>-PRELOAD&&r.top<vh+PRELOAD&&r.right>0&&r.left<vw) v.load(); } }
+let lazyS=false; function scheduleLazy(){ if(lazyS) return; lazyS=true; requestAnimationFrame(()=>{ lazyS=false; checkLazy(); }); }
+window.addEventListener('scroll', scheduleLazy, {passive:true});
+window.addEventListener('resize', ()=>{ resizeCanvas(); scheduleLazy(); });
+
+let rafId=null;
+function startRenderLoop(){ if(rafId==null) renderLoop(); }
+function renderLoop(){
+  if(!lbOpen||!active){ rafId=null; return; }
+  rafId=requestAnimationFrame(renderLoop);
+  resizeCanvas();
+  if(!active.loaded) return;
+  const {h:vh}=viewportSize();
+  renderer.setScissorTest(false); renderer.setClearColor(0x000000,0); renderer.clear();
+  const r=lbStage.getBoundingClientRect();
+  if(r.width>2&&r.height>2){
+    active.camera.aspect=r.width/r.height; active.camera.updateProjectionMatrix();
+    if(active.controls) active.controls.update();
+    renderer.setViewport(r.left, vh-r.bottom, r.width, r.height);
+    renderer.setScissor(r.left, vh-r.bottom, r.width, r.height);
+    renderer.setScissorTest(true); renderer.setClearColor(BG[state.bg],1); renderer.clear();
+    renderer.render(active.scene, active.camera);
+  }
+}
+
+let appStarted=false;
+async function startApp(){
+  if(appStarted) return; appStarted=true;
+  let items=[];
+  try{ items=await (await fetch('meshes/manifest.json',{cache:'no-store'})).json(); }catch(e){ console.error(e); }
+  if(!items.length){ grid.innerHTML='<div class="empty">manifest.json が読めませんでした。<br>簡易サーバー経由で開いているかご確認ください。</div>'; }
+  else{ items.forEach((it,i)=>buildCard(it,i)); document.getElementById('count').textContent=items.length+' 点'; }
+  resizeCanvas(); checkLazy(); setTimeout(checkLazy,300); setTimeout(checkLazy,1200);
+}
+
+/* パスワード */
+const PW_HASH='40aec3314f9f8026c87121aff2a383fff61542f92e4e1fa71b46621045a09652';
+const AUTH_KEY='dd_review_auth';
+async function sha256hex(s){ const b=await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)); return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join(''); }
+const lockEl=document.getElementById('lock');
+function unlock(){ lockEl.classList.add('hidden'); setTimeout(()=>{ lockEl.style.display='none'; },360); startApp(); }
+if(sessionStorage.getItem(AUTH_KEY)==='1'){ unlock(); }
+else{
+  const form=document.getElementById('lock__form'), input=document.getElementById('lock__input'), errEl=document.getElementById('lock__err'), lcard=lockEl.querySelector('.lock__card');
+  setTimeout(()=>input.focus(),50);
+  form.addEventListener('submit', async e=>{ e.preventDefault(); let ok=false; try{ ok=(await sha256hex(input.value))===PW_HASH; }catch(_){ } if(ok){ sessionStorage.setItem(AUTH_KEY,'1'); unlock(); } else { errEl.hidden=false; input.value=''; input.focus(); lcard.classList.remove('shake'); void lcard.offsetWidth; lcard.classList.add('shake'); } });
+}
+</script>
+</body>
+</html>
