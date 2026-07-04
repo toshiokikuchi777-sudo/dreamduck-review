@@ -211,23 +211,6 @@
   .switch.sm .track::after{ width:16px; height:16px; }
   .switch.sm input:checked + .track::after{ transform:translateX(16px); }
 
-  /* ---------- カラーパレット ---------- */
-  .palette{ padding:14px 20px 16px; border-top:1px solid var(--line); background:#fcfbf9; }
-  .palette__head{ display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; }
-  .palette__title{ font-size:11px; letter-spacing:.16em; text-transform:uppercase; color:var(--ink-soft); font-weight:700; }
-  .palette__note{ font-size:11px; color:var(--ink-soft); opacity:.85; }
-  .palette__chips{ display:flex; flex-wrap:wrap; gap:9px; margin-top:11px; }
-  .swatch{
-    display:flex; align-items:center; gap:9px; background:#fff; border:1px solid var(--line);
-    border-radius:10px; padding:5px 11px 5px 6px; cursor:pointer; font:inherit; transition:.14s;
-  }
-  .swatch:hover{ border-color:#c4bdb0; box-shadow:0 3px 10px -5px rgba(0,0,0,.28); }
-  .swatch:active{ transform:translateY(1px); }
-  .swatch__sw{ width:30px; height:30px; border-radius:7px; border:1px solid rgba(0,0,0,.12); flex:none; }
-  .swatch__txt{ display:flex; flex-direction:column; line-height:1.28; text-align:left; }
-  .swatch__txt b{ font-size:12px; font-family:ui-monospace,Menlo,Consolas,monospace; color:var(--ink); font-weight:700; letter-spacing:.01em; }
-  .swatch__txt i{ font-size:11px; font-style:normal; color:var(--ink-soft); white-space:nowrap; }
-
   footer{ text-align:center; color:var(--ink-soft); font-size:12px; padding:30px 20px 50px; letter-spacing:.05em; }
   footer .brand{ font-weight:700; color:var(--ink); }
 
@@ -415,23 +398,6 @@ async function discoverModels(){
 
 const BG = { light: new THREE.Color(0xf3f1ec), dark: new THREE.Color(0x232323) };
 let state = { mode:'persp', bg:'light', rotate:false };
-
-/* ====== カラー指定（HEXはpantone/アートボードから抽出 ＝ 確定値 / PMSは近似Coated・参考） ====== */
-const PALETTES = {
-  "01": [{h:"#F2F2C3",p:"PANTONE 7499 C",ph:"#f1e6b2",de:4.4}, {h:"#C8B5D4",p:"PANTONE 523 C",ph:"#c9b1d0",de:1.7}, {h:"#ECB3CC",p:"PANTONE 203 C",ph:"#ecb3cb",de:0.3}, {h:"#B1CFEA",p:"PANTONE 277 C",ph:"#abcae9",de:1.8}, {h:"#DB6C9E",p:"PANTONE 218 C",ph:"#e56db1",de:4.0}, {h:"#AAD2AD",p:"PANTONE 344 C",ph:"#a0dab3",de:3.6}],
-  "02": [{h:"#F4D2E2",p:"PANTONE 684 C",ph:"#e4c6d4",de:3.3}, {h:"#F1F1C4",p:"PANTONE 7499 C",ph:"#f1e6b2",de:4.4}, {h:"#C1BCDB",p:"PANTONE 7444 C",ph:"#b6b8dc",de:3.3}, {h:"#A8C8E5",p:"PANTONE 277 C",ph:"#abcae9",de:1.1}, {h:"#DB6E9F",p:"PANTONE 218 C",ph:"#e56db1",de:4.0}, {h:"#AED2AF",p:"PANTONE 344 C",ph:"#a0dab3",de:4.4}],
-  "03": [{h:"#F2F2C3",p:"PANTONE 7499 C",ph:"#f1e6b2",de:4.4}, {h:"#D684AE",p:"PANTONE 673 C",ph:"#d986ba",de:2.7}, {h:"#74A5D3",p:"PANTONE 7453 C",ph:"#7ba6de",de:2.7}, {h:"#C2BAD8",p:"PANTONE 665 C",ph:"#c6bcd0",de:3.6}, {h:"#E0F0F1",p:"PANTONE 7541 C",ph:"#d9e1e2",de:4.3}, {h:"#DCDFEA",p:"PANTONE 5315 C",ph:"#d8d7df",de:2.7}],
-  "04": [{h:"#DAA7C6",p:"PANTONE 686 C",ph:"#d0a1ba",de:2.7}, {h:"#DED9EB",p:"PANTONE 7443 C",ph:"#dddae8",de:1.9}, {h:"#F1F1C3",p:"PANTONE 7499 C",ph:"#f1e6b2",de:4.3}, {h:"#5EB69C",p:"PANTONE 7465 C",ph:"#40c1ac",de:4.8}, {h:"#DED9EB",p:"PANTONE 7443 C",ph:"#dddae8",de:1.9}, {h:"#A5D1BC",p:"PANTONE 559 C",ph:"#adcab8",de:4.0}],
-  "05": [{h:"#DAA7C6",p:"PANTONE 686 C",ph:"#d0a1ba",de:2.7}, {h:"#4287BE",p:"PANTONE Process Blue C",ph:"#0085ca",de:3.1}, {h:"#80C3B4",p:"PANTONE 564 C",ph:"#86c8bc",de:1.8}, {h:"#D53181",p:"PANTONE 219 C",ph:"#da1884",de:2.1}, {h:"#EFB97D",p:"PANTONE 156 C",ph:"#efbe7d",de:2.4}, {h:"#EDEC9D",p:"PANTONE Yellow 0131 C",ph:"#f2f0a1",de:0.9}],
-  "06": [{h:"#9D95C1",p:"PANTONE 666 C",ph:"#a192b2",de:4.6}, {h:"#F2F2C3",p:"PANTONE 7499 C",ph:"#f1e6b2",de:4.4}, {h:"#DB6C9E",p:"PANTONE 218 C",ph:"#e56db1",de:4.0}, {h:"#A8C8E5",p:"PANTONE 277 C",ph:"#abcae9",de:1.1}],
-  "07": [{h:"#C8DEEF",p:"PANTONE 545 C",ph:"#c6dae7",de:1.8}, {h:"#EDEC9D",p:"PANTONE Yellow 0131 C",ph:"#f2f0a1",de:0.9}, {h:"#DB6C9E",p:"PANTONE 218 C",ph:"#e56db1",de:4.0}, {h:"#A5D1BC",p:"PANTONE 559 C",ph:"#adcab8",de:4.0}],
-  "08": [{h:"#F2F2C3",p:"PANTONE 7499 C",ph:"#f1e6b2",de:4.4}, {h:"#D684AE",p:"PANTONE 673 C",ph:"#d986ba",de:2.7}, {h:"#A8C8E5",p:"PANTONE 277 C",ph:"#abcae9",de:1.1}],
-  "09": [{h:"#80C3B4",p:"PANTONE 564 C",ph:"#86c8bc",de:1.8}, {h:"#F3C496",p:"PANTONE 712 C",ph:"#fcc89b",de:2.0}, {h:"#A8C8E5",p:"PANTONE 277 C",ph:"#abcae9",de:1.1}],
-  "10": [{h:"#80C3B4",p:"PANTONE 564 C",ph:"#86c8bc",de:1.8}, {h:"#C1BCDB",p:"PANTONE 7444 C",ph:"#b6b8dc",de:3.3}, {h:"#DAA7C6",p:"PANTONE 686 C",ph:"#d0a1ba",de:2.7}],
-  "11": [{h:"#A7D2BB",p:"PANTONE 559 C",ph:"#adcab8",de:4.0}, {h:"#D684AE",p:"PANTONE 673 C",ph:"#d986ba",de:2.7}, {h:"#9E95C3",p:"PANTONE 666 C",ph:"#a192b2",de:4.9}],
-  "12": [{h:"#ECB4CC",p:"PANTONE 203 C",ph:"#ecb3cb",de:0.3}, {h:"#A7D2BB",p:"PANTONE 559 C",ph:"#adcab8",de:4.0}, {h:"#C3C2C3",p:"PANTONE Cool Gray 4 C",ph:"#bbbcbc",de:2.1}, {h:"#A8C8E5",p:"PANTONE 277 C",ph:"#abcae9",de:1.1}, {h:"#F2F1C3",p:"PANTONE 7499 C",ph:"#f1e6b2",de:4.1}, {h:"#C1BCDB",p:"PANTONE 7444 C",ph:"#b6b8dc",de:3.3}],
-  "secret": [{h:"#F5D3A4",p:"PANTONE 155 C",ph:"#efd19f",de:1.9}, {h:"#A7D2BB",p:"PANTONE 559 C",ph:"#adcab8",de:4.0}, {h:"#BED4E9",p:"PANTONE 2707 C",ph:"#c3d7ee",de:1.6}, {h:"#ECB3CC",p:"PANTONE 203 C",ph:"#ecb3cb",de:0.3}, {h:"#F2F1C3",p:"PANTONE 7499 C",ph:"#f1e6b2",de:4.1}, {h:"#C1BCDB",p:"PANTONE 7444 C",ph:"#b6b8dc",de:3.3}],
-};
 
 /* ====== レンダラー（全カード共有） ====== */
 const canvas = document.getElementById('webgl');
@@ -685,10 +651,8 @@ function buildCard(m){
         <span class="panel__tag">原案スケッチ / Sketch</span>
         ${sketchInner}
       </div>
-    </div>
-    <div class="palette" data-id="${m.id}"></div>`;
+    </div>`;
   grid.appendChild(card);
-  renderPalette(card, m.id);
 
   const v = new Viewer(m);
   v.dimEl    = card.querySelector('.card__dim');
@@ -704,34 +668,6 @@ function buildCard(m){
     card.querySelector('.panel--sketch').addEventListener('click',
       ()=> openLightboxImg(skImg.currentSrc || skImg.src, `${m.label} ・ 原案スケッチ`));
   }
-}
-
-/* ====== カラーパレット（指定HEX ＋ 近似PMS） ====== */
-function renderPalette(card, mid){
-  const host = card.querySelector('.palette');
-  const data = (typeof PALETTES !== 'undefined' && PALETTES[mid]) || [];
-  if(!host) return;
-  if(!data.length){ host.style.display='none'; return; }
-  host.innerHTML =
-    `<div class="palette__head"><span class="palette__title">カラー指定</span>`
-    + `<span class="palette__note">HEX＝抽出値 ／ PANTONE＝近似Coated（参考）</span></div>`
-    + `<div class="palette__chips">`
-    + data.map(c => `
-        <button class="swatch" type="button" data-hex="${c.h}"
-                title="指定 ${c.h}　→　${c.p}（PMS近似色 ${c.ph} / ΔE ${c.de}）　クリックでHEXコピー">
-          <span class="swatch__sw" style="background:${c.h}"></span>
-          <span class="swatch__txt"><b>${c.h}</b><i>${c.p}</i></span>
-        </button>`).join('')
-    + `</div>`;
-  host.querySelectorAll('.swatch').forEach(b => {
-    b.addEventListener('click', ()=>{
-      const hex = b.dataset.hex;
-      try{ navigator.clipboard && navigator.clipboard.writeText(hex); }catch(_){}
-      const bb = b.querySelector('b'); const prev = bb.textContent;
-      bb.textContent = 'コピー！';
-      setTimeout(()=>{ bb.textContent = prev; }, 850);
-    });
-  });
 }
 
 /* ====== 各アングル一括撮影 → コンタクトシートPNG ====== */
