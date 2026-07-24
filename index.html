@@ -399,6 +399,12 @@ async function discoverModels(){
 const BG = { light: new THREE.Color(0xf3f1ec), dark: new THREE.Color(0x232323) };
 let state = { mode:'persp', bg:'light', rotate:false };
 
+/* STL実寸で寸法を表示するモデル（GLBは膨らむため。値は幅50.636mm基準に縮小したSTL実寸 mm） */
+const STL_DIM = {
+  "01":     [50.64, 64.03, 64.63],
+  "secret": [50.64, 62.26, 64.29],
+};
+
 /* ====== レンダラー（全カード共有） ====== */
 const canvas = document.getElementById('webgl');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, alpha:true, preserveDrawingBuffer:true });
@@ -495,9 +501,12 @@ class Viewer{
         const radius = Math.max(size.length() / 2, 0.001);
         this.frameObject(radius);
 
-        this.dims = { x:size.x, y:size.y, z:size.z };
+        const ov = STL_DIM[this.id];
+        this.dims = ov ? { x:ov[0], y:ov[1], z:ov[2] } : { x:size.x, y:size.y, z:size.z };
         if(this.dimEl){
-          this.dimEl.textContent = `W ${size.x.toFixed(1)} × H ${size.y.toFixed(1)} × D ${size.z.toFixed(1)} mm`;
+          const dd = this.dims;
+          this.dimEl.textContent = `W ${dd.x.toFixed(1)} × H ${dd.y.toFixed(1)} × D ${dd.z.toFixed(1)} mm`;
+          if(ov) this.dimEl.title = 'STL実寸（幅50.64mm基準）';
         }
 
         this.loaded = true; this.loading = false;
