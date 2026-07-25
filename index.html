@@ -727,7 +727,7 @@ async function captureAngles(v, btn){
   }
   if(btn){ btn.disabled=true; btn._t=btn.textContent; btn.textContent='撮影中…'; }
   try{
-    const SIZE = 1000;
+    const SIZE = 1680;   // 各アングルの描画解像度（コンタクトシートのタイル等倍・高精細）
     const prev = new THREE.Vector2(); renderer.getSize(prev);
     const prevPR = renderer.getPixelRatio();
     renderer.setScissorTest(false);
@@ -775,25 +775,27 @@ function loadImg(url){ return new Promise((res,rej)=>{ const i=new Image(); i.on
 
 async function composeAndDownload(v, shots){
   const imgs = await Promise.all(shots.map(s => loadImg(s.url)));
-  const tile=560, pad=22, cols=3, labelH=36, headH=104;
+  const S = 3;   // 解像度3倍（コンタクトシート全体を等倍拡大）
+  const tile=560*S, pad=22*S, cols=3, labelH=36*S, headH=104*S;
   const rows=Math.ceil(shots.length/cols);
   const W = cols*tile + (cols+1)*pad;
   const H = headH + rows*(tile+labelH+pad) + pad;
   const c = document.createElement('canvas'); c.width=W; c.height=H;
   const ctx = c.getContext('2d');
+  ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
   const dark = state.bg==='dark';
 
   ctx.fillStyle = dark ? '#1b1b1b' : '#ffffff';
   ctx.fillRect(0,0,W,H);
   ctx.textBaseline='top';
   ctx.fillStyle = dark ? '#ffffff' : '#1c1b19';
-  ctx.font = '700 34px "Helvetica Neue", Arial, sans-serif';
-  ctx.fillText(`DreamDuck  ${String(v.id).toUpperCase()}`, pad, 26);
-  ctx.font = '500 19px "Helvetica Neue", Arial, sans-serif';
+  ctx.font = `700 ${34*S}px "Helvetica Neue", Arial, sans-serif`;
+  ctx.fillText(`DreamDuck  ${String(v.id).toUpperCase()}`, pad, 26*S);
+  ctx.font = `500 ${19*S}px "Helvetica Neue", Arial, sans-serif`;
   ctx.fillStyle = dark ? '#bcbcbc' : '#8a857c';
   const d = v.dims;
   const dt = d ? `W ${d.x.toFixed(1)} × H ${d.y.toFixed(1)} × D ${d.z.toFixed(1)} mm` : '';
-  ctx.fillText(`Sekiya Yurie Model     ·     ${dt}`, pad, 66);
+  ctx.fillText(`Sekiya Yurie Model     ·     ${dt}`, pad, 66*S);
 
   for(let i=0;i<imgs.length;i++){
     const r = Math.floor(i/cols), col = i%cols;
@@ -802,12 +804,12 @@ async function composeAndDownload(v, shots){
     ctx.fillStyle = dark ? '#252525' : '#f3f1ec';
     ctx.fillRect(x, y, tile, tile);
     ctx.drawImage(imgs[i], x, y, tile, tile);
-    ctx.strokeStyle = dark ? '#3a3a3a' : '#e2ddd2'; ctx.lineWidth=1;
+    ctx.strokeStyle = dark ? '#3a3a3a' : '#e2ddd2'; ctx.lineWidth=1*S;
     ctx.strokeRect(x+0.5, y+0.5, tile-1, tile-1);
     ctx.fillStyle = dark ? '#dddddd' : '#555555';
-    ctx.font = '600 18px "Helvetica Neue", Arial, sans-serif';
+    ctx.font = `600 ${18*S}px "Helvetica Neue", Arial, sans-serif`;
     ctx.textAlign='center';
-    ctx.fillText(shots[i].name, x + tile/2, y + tile + 9);
+    ctx.fillText(shots[i].name, x + tile/2, y + tile + 9*S);
     ctx.textAlign='left';
   }
   downloadCanvas(c, `DreamDuck_${v.id}_angles.png`);
