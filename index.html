@@ -682,7 +682,6 @@ function buildCard(m){
     <div class="card__head">
       <span class="card__no ${m.secret?'secret':''}">${m.label}</span>
       <span class="card__file">models/${m.id}.glb${m.pngVer?` · sketches/${m.id}.png`:''}</span>
-      <span class="card__dim" title="GLBの書き出し寸法（mm想定）。W=幅 / H=高さ / D=奥行">寸法測定中…</span>
     </div>
     <div class="card__body">
       <div class="panel panel--model is-${state.bg} zoomable">
@@ -797,9 +796,7 @@ async function composeAndDownload(v, shots){
   ctx.fillText(`DreamDuck  ${String(v.id).toUpperCase()}`, pad, 26*S);
   ctx.font = `500 ${19*S}px "Helvetica Neue", Arial, sans-serif`;
   ctx.fillStyle = dark ? '#bcbcbc' : '#8a857c';
-  const d = v.dims;
-  const dt = d ? `W ${d.x.toFixed(1)} × H ${d.y.toFixed(1)} × D ${d.z.toFixed(1)} mm` : '';
-  ctx.fillText(`Sekiya Yurie Model     ·     ${dt}`, pad, 66*S);
+  ctx.fillText(`Sekiya Yurie Model`, pad, 66*S);
 
   for(let i=0;i<imgs.length;i++){
     const r = Math.floor(i/cols), col = i%cols;
