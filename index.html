@@ -712,7 +712,11 @@ function buildCard(m){
   }
 }
 
-/* ====== 各アングル一括撮影 → コンタクトシートPNG ====== */
+/* ====== 各アングル一括撮影 → コンタクトシートPNG ======
+   ※全モデル共通の固定スケールで描画する（モデルごとの大きさに合わせない）。
+     GLBは全て幅50.636mmに統一済みなので、Illustratorに並べると幅がぴったり揃う。 */
+const CAP_ORTHO_HALF = 39.0;    // 正投影の表示半径(mm)：表示範囲 78mm角
+const CAP_PERSP_DIST = 124.0;   // 透視のカメラ距離(mm)：中心面で正投影と同スケール
 const CAPTURE_ANGLES = [
   { name:'正面 Front',        slug:'1_front',    az:0,              ortho:true },
   { name:'右 Right',          slug:'2_right',    az:Math.PI/2,      ortho:true },
@@ -743,13 +747,12 @@ async function captureAngles(v, btn){
       const dir = new THREE.Vector3().setFromSphericalCoords(1, pol, a.az);
       let cam;
       if(a.ortho){
-        const h = v.radius * 1.06;
-        cam = new THREE.OrthographicCamera(-h, h, h, -h, -v.radius*40, v.radius*40);
-        cam.position.copy(dir.clone().multiplyScalar(v.radius * 6));
+        const h = CAP_ORTHO_HALF;                       // 全モデル共通（実寸スケール）
+        cam = new THREE.OrthographicCamera(-h, h, h, -h, -2000, 2000);
+        cam.position.copy(dir.clone().multiplyScalar(600));
       } else {
-        cam = new THREE.PerspectiveCamera(v.fov, 1, 0.01, v.radius*400);
-        const dist = (v.radius / Math.sin((v.fov*Math.PI/180)/2)) * 1.12;
-        cam.position.copy(dir.clone().multiplyScalar(dist));
+        cam = new THREE.PerspectiveCamera(v.fov, 1, 0.01, 4000);
+        cam.position.copy(dir.clone().multiplyScalar(CAP_PERSP_DIST));   // 全モデル共通
       }
       cam.up.set(0,1,0);
       cam.lookAt(0,0,0);
@@ -765,7 +768,7 @@ async function captureAngles(v, btn){
     renderer.setSize(prev.x, prev.y, false);
     renderer.setScissorTest(true);
 
-    await downloadShots(v, shots);
+    await composeAndDownload(v, shots);
   } catch(e){
     console.error('capture error', e);
     alert('撮影に失敗しました: ' + e.message);
@@ -774,18 +777,51 @@ async function captureAngles(v, btn){
   }
 }
 
-/* 各アングルを背景透過PNGで個別にダウンロード（Illustrator編集用） */
-async function downloadShots(v, shots){
-  for(const s of shots){
-    downloadDataURL(s.url, `DreamDuck_${v.id}_${s.slug}.png`);
-    await new Promise(r => setTimeout(r, 350));   // 連続DLのブロック回避
+function loadImg(url){ return new Promise((res,rej)=>{ const i=new Image(); i.onload=()=>res(i); i.onerror=rej; i.src=url; }); }
+
+/* 6アングルを1枚のシートに配置（背景透過・Illustrator編集用） */
+async function composeAndDownload(v, shots){
+  const imgs = await Promise.all(shots.map(s => loadImg(s.url)));
+  const S = 3;   // 解像度3倍
+  const tile=560*S, pad=22*S, cols=3, labelH=36*S, headH=104*S;
+  const rows=Math.ceil(shots.length/cols);
+  const W = cols*tile + (cols+1)*pad;
+  const H = headH + rows*(tile+labelH+pad) + pad;
+  const c = document.createElement('canvas'); c.width=W; c.height=H;
+  const ctx = c.getContext('2d');
+  ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+
+  // 背景は透過のまま（塗らない）
+  ctx.textBaseline='top';
+  ctx.fillStyle = '#1c1b19';
+  ctx.font = `700 ${34*S}px "Helvetica Neue", Arial, sans-serif`;
+  ctx.fillText(`DreamDuck  ${String(v.id).toUpperCase()}`, pad, 26*S);
+  ctx.font = `500 ${19*S}px "Helvetica Neue", Arial, sans-serif`;
+  ctx.fillStyle = '#8a857c';
+  ctx.fillText(`Sekiya Yurie Model`, pad, 66*S);
+
+  for(let i=0;i<imgs.length;i++){
+    const r = Math.floor(i/cols), col = i%cols;
+    const x = pad + col*(tile+pad);
+    const y = headH + pad + r*(tile+labelH+pad);
+    ctx.drawImage(imgs[i], x, y, tile, tile);
+    ctx.fillStyle = '#555555';
+    ctx.font = `600 ${18*S}px "Helvetica Neue", Arial, sans-serif`;
+    ctx.textAlign='center';
+    ctx.fillText(shots[i].name, x + tile/2, y + tile + 9*S);
+    ctx.textAlign='left';
   }
+  downloadCanvas(c, `DreamDuck_${v.id}_angles.png`);
 }
 
-function downloadDataURL(dataURL, filename){
-  const a = document.createElement('a');
-  a.href = dataURL; a.download = filename;
-  document.body.appendChild(a); a.click(); a.remove();
+function downloadCanvas(canvas, filename){
+  canvas.toBlob((blob)=>{
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=> URL.revokeObjectURL(url), 2000);
+  }, 'image/png');
 }
 
 /* ====== 遅延ロード（描画ループ内の可視判定で発火） ====== */
