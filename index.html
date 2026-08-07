@@ -714,12 +714,12 @@ function buildCard(m){
 
 /* ====== 各アングル一括撮影 → コンタクトシートPNG ====== */
 const CAPTURE_ANGLES = [
-  { name:'正面 Front',        az:0,              ortho:true },
-  { name:'右 Right',          az:Math.PI/2,      ortho:true },
-  { name:'背面 Back',         az:Math.PI,        ortho:true },
-  { name:'左 Left',           az:-Math.PI/2,     ortho:true },
-  { name:'俯瞰 3/4',          az:Math.PI/5,    pol:Math.PI/3.1, ortho:false },
-  { name:'斜め後ろ俯瞰 Rear', az:Math.PI*0.78, pol:Math.PI/3.4, ortho:false },
+  { name:'正面 Front',        slug:'1_front',    az:0,              ortho:true },
+  { name:'右 Right',          slug:'2_right',    az:Math.PI/2,      ortho:true },
+  { name:'背面 Back',         slug:'3_back',     az:Math.PI,        ortho:true },
+  { name:'左 Left',           slug:'4_left',     az:-Math.PI/2,     ortho:true },
+  { name:'俯瞰 3/4',          slug:'5_top34',    az:Math.PI/5,    pol:Math.PI/3.1, ortho:false },
+  { name:'斜め後ろ俯瞰 Rear', slug:'6_rear34',   az:Math.PI*0.78, pol:Math.PI/3.4, ortho:false },
 ];
 
 async function captureAngles(v, btn){
@@ -755,17 +755,17 @@ async function captureAngles(v, btn){
       cam.lookAt(0,0,0);
       cam.updateProjectionMatrix();
       renderer.setViewport(0,0,SIZE,SIZE);
-      renderer.setClearColor(BG[state.bg], 1);
+      renderer.setClearColor(0x000000, 0);   // 背景透過（Illustrator編集用）
       renderer.clear();
       renderer.render(v.scene, cam);
-      shots.push({ name:a.name, url: renderer.domElement.toDataURL('image/png') });
+      shots.push({ name:a.name, slug:a.slug, url: renderer.domElement.toDataURL('image/png') });
     }
 
     renderer.setPixelRatio(prevPR);
     renderer.setSize(prev.x, prev.y, false);
     renderer.setScissorTest(true);
 
-    await composeAndDownload(v, shots);
+    await downloadShots(v, shots);
   } catch(e){
     console.error('capture error', e);
     alert('撮影に失敗しました: ' + e.message);
@@ -774,56 +774,18 @@ async function captureAngles(v, btn){
   }
 }
 
-function loadImg(url){ return new Promise((res,rej)=>{ const i=new Image(); i.onload=()=>res(i); i.onerror=rej; i.src=url; }); }
-
-async function composeAndDownload(v, shots){
-  const imgs = await Promise.all(shots.map(s => loadImg(s.url)));
-  const S = 3;   // 解像度3倍（コンタクトシート全体を等倍拡大）
-  const tile=560*S, pad=22*S, cols=3, labelH=36*S, headH=104*S;
-  const rows=Math.ceil(shots.length/cols);
-  const W = cols*tile + (cols+1)*pad;
-  const H = headH + rows*(tile+labelH+pad) + pad;
-  const c = document.createElement('canvas'); c.width=W; c.height=H;
-  const ctx = c.getContext('2d');
-  ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
-  const dark = state.bg==='dark';
-
-  ctx.fillStyle = dark ? '#1b1b1b' : '#ffffff';
-  ctx.fillRect(0,0,W,H);
-  ctx.textBaseline='top';
-  ctx.fillStyle = dark ? '#ffffff' : '#1c1b19';
-  ctx.font = `700 ${34*S}px "Helvetica Neue", Arial, sans-serif`;
-  ctx.fillText(`DreamDuck  ${String(v.id).toUpperCase()}`, pad, 26*S);
-  ctx.font = `500 ${19*S}px "Helvetica Neue", Arial, sans-serif`;
-  ctx.fillStyle = dark ? '#bcbcbc' : '#8a857c';
-  ctx.fillText(`Sekiya Yurie Model`, pad, 66*S);
-
-  for(let i=0;i<imgs.length;i++){
-    const r = Math.floor(i/cols), col = i%cols;
-    const x = pad + col*(tile+pad);
-    const y = headH + pad + r*(tile+labelH+pad);
-    ctx.fillStyle = dark ? '#252525' : '#f3f1ec';
-    ctx.fillRect(x, y, tile, tile);
-    ctx.drawImage(imgs[i], x, y, tile, tile);
-    ctx.strokeStyle = dark ? '#3a3a3a' : '#e2ddd2'; ctx.lineWidth=1*S;
-    ctx.strokeRect(x+0.5, y+0.5, tile-1, tile-1);
-    ctx.fillStyle = dark ? '#dddddd' : '#555555';
-    ctx.font = `600 ${18*S}px "Helvetica Neue", Arial, sans-serif`;
-    ctx.textAlign='center';
-    ctx.fillText(shots[i].name, x + tile/2, y + tile + 9*S);
-    ctx.textAlign='left';
+/* 各アングルを背景透過PNGで個別にダウンロード（Illustrator編集用） */
+async function downloadShots(v, shots){
+  for(const s of shots){
+    downloadDataURL(s.url, `DreamDuck_${v.id}_${s.slug}.png`);
+    await new Promise(r => setTimeout(r, 350));   // 連続DLのブロック回避
   }
-  downloadCanvas(c, `DreamDuck_${v.id}_angles.png`);
 }
 
-function downloadCanvas(canvas, filename){
-  canvas.toBlob((blob)=>{
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = filename;
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(()=> URL.revokeObjectURL(url), 2000);
-  }, 'image/png');
+function downloadDataURL(dataURL, filename){
+  const a = document.createElement('a');
+  a.href = dataURL; a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
 }
 
 /* ====== 遅延ロード（描画ループ内の可視判定で発火） ====== */
